@@ -127,6 +127,110 @@ OPS1_WREG = 0x1
 AUX_SZ_BYTE = 0x01
 
 
+def mask_B_14(code):
+    return (code & 0x004000) != 0
+
+
+def mask_d_0(code):
+    return code & 0x00000F
+
+
+def mask_d_7(code):
+    return (code & 0x000780) >> 7
+
+
+def mask_f13_0(code):
+    return code & 0x001FFF
+
+
+def mask_f15_4(code):
+    return (code & 0x07FFF0) >> 3
+
+
+def mask_g_4(code):
+    return (code & 0x000070) >> 4
+
+
+def mask_h_11(code):
+    return (code & 0x003800) >> 11
+
+
+def mask_k8_4(code):
+    return (code & 0x000FF0) >> 4
+
+
+def mask_k16_4(code):
+    return (code & 0x0FFFF0) >> 4
+
+
+def mask_s_0(code):
+    return code & 0x00000F
+
+
+def mask_slit10_4(code):
+    return (
+        (
+            ((code & 0x038000) >> 11)
+            + ((code & 0x003800) >> 8)
+            + ((code & 0x000070) >> 4)
+        ) * (-2 if code & 0x040000 else 2)
+    )
+
+
+def mask_w_15(code):
+    return (code & 0x078000) >> 15
+
+
+def set_op_imm(insn, op, value):
+    insn.ops[op].type = ida.o_imm
+    insn.ops[op].value = value
+    insn.ops[op].dtyp = ida.dt_word
+
+
+def set_op_reg(insn, op, reg):
+    insn.ops[op].type = ida.o_reg
+    insn.ops[op].reg = ireg.W0 + reg
+    insn.ops[op].dtyp = ida.dt_word
+
+
+def set_op_wreg(insn, op):
+    insn.ops[op].type = ida.o_reg
+    insn.ops[op].reg = ireg.W0
+    insn.ops[op].specflag1 = OPS1_WREG
+    insn.ops[op].dtyp = ida.dt_word
+
+
+def set_op_mem(insn, op, addr):
+    insn.ops[op].type = ida.o_mem
+    insn.ops[op].addr = ida.map_data_ea(insn, addr)
+    insn.ops[op].dtyp = ida.dt_word
+
+
+def set_op_displ(insn, op, reg, displ):
+    insn.ops[op].type = ida.o_displ
+    insn.ops[op].reg = ireg.W0 + reg
+    insn.ops[op].addr = displ
+    insn.ops[op].dtyp = ida.dt_word
+
+
+def set_op_phrase(insn, op, reg, mode, offset_reg):
+    insn.ops[op].type = ida.o_phrase
+    insn.ops[op].phrase = reg
+    insn.ops[op].specflag3 = offset_reg
+    insn.ops[op].specflag4 = mode
+    insn.ops[op].dtyp = ida.dt_word
+
+
+def set_insn_byte(insn):
+    for op in insn.ops:
+        if op.type == ida.o_null:
+            break
+        if op.dtyp == ida.dt_word:
+            op.dtyp = ida.dt_byte
+
+    insn.auxpref |= AUX_SZ_BYTE
+
+
 ###############################################################################
 # Instructions                                                                #
 ###############################################################################
@@ -144,171 +248,34 @@ class Instruction(object):
         self._decode(insn, code)
 
 
-class I_mov_lw(Instruction):
-    """MOV #lit16, Wnd"""
+class I_mov_f_wr(Instruction):
+    """MOV{.B} f, WREG"""
     name = 'mov'
-    mask = 0xF00000
-    code = 0x200000
+    mask = 0xFFA000
+    code = 0xBF8000
     feat = ida.CF_USE1 | ida.CF_CHG2
 
     def _decode(self, insn, code):
-        # 0010 kkkk kkkk kkkk kkkk dddd
-
-        insn.Op1.type = ida.o_imm
-        insn.Op1.value = (code & 0x0FFFF0) >> 4
-        insn.Op1.dtyp = ida.dt_word
-
-        insn.Op2.type = ida.o_reg
-        insn.Op2.reg = ireg.W0 + (code & 0x00000F)
-        insn.Op2.dtyp = ida.dt_word
+        set_op_mem(insn, 0, mask_f13_0(code))
+        set_op_wreg(insn, 1)
+        if mask_B_14(code):
+            set_insn_byte(insn)
 
 
-class I_mov_ww(Instruction):
-    """MOV{.B} Ws, Wd"""
+class I_mov_f(Instruction):
+    """MOV{.B} f"""
     name = 'mov'
-    mask = 0xF80000
-    code = 0x780000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    mask = 0xFFA000
+    code = 0xBFA000
+    feat = ida.CF_CHG1
 
     def _decode(self, insn, code):
-        # 0111 1www wBhh hddd dggg ssss
-
-        insn.Op1.type = ida.o_phrase
-        insn.Op1.phrase = (code & 0x00000F)  # s
-        insn.Op1.specflag4 = (code & 0x000070) >> 4   # g
-        insn.Op1.specflag3 = (code & 0x078000) >> 15  # w
-        insn.Op1.dtyp = ida.dt_word
-
-        insn.Op2.type = ida.o_phrase
-        insn.Op2.phrase = (code & 0x000780) >> 7  # d
-        insn.Op2.specflag4 = (code & 0x003800) >> 11  # h
-        insn.Op1.specflag3 = (code & 0x078000) >> 15  # w
-        insn.Op1.dtyp = ida.dt_word
-
-        if code & 0x004000:  # B
-            insn.Op1.dtyp = ida.dt_byte
-            insn.Op2.dtyp = ida.dt_byte
-            insn.auxpref |= AUX_SZ_BYTE
+        set_op_mem(insn, 0, mask_f13_0(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
 
 
-class I_mov_fw(Instruction):
-    """MOV f, Wnd"""
-    name = 'mov'
-    mask = 0xF80000
-    code = 0x800000
-    feat = ida.CF_USE1 | ida.CF_CHG2
-
-    def _decode(self, insn, code):
-        # 1000 0fff ffff ffff ffff dddd
-
-        insn.Op1.type = ida.o_mem
-        insn.Op1.addr = ida.map_data_ea(insn, (code & 0x07FFF0) << 1)
-        insn.Op1.dtyp = ida.dt_word
-
-        insn.Op2.type = ida.o_reg
-        insn.Op2.reg = ireg.W0 + (code & 0x00000F)
-        insn.Op2.dtyp = ida.dt_word
-
-
-class I_mov_wf(Instruction):
-    """MOV Wns, f"""
-    name = 'mov'
-    mask = 0xF80000
-    code = 0x880000
-    feat = ida.CF_USE1 | ida.CF_CHG2
-
-    def _decode(self, insn, code):
-        # 1000 1fff ffff ffff ffff ssss
-
-        insn.Op1.type = ida.o_reg
-        insn.Op1.reg = ireg.W0 + (code & 0x00000F)
-        insn.Op1.dtyp = ida.dt_word
-
-        insn.Op2.type = ida.o_mem
-        insn.Op2.addr = ida.map_data_ea(insn, (code & 0x07FFF0) << 1)
-        insn.Op2.dtyp = ida.dt_word
-
-
-class I_mov_pw(Instruction):
-    """MOV{.B} [Ws + Slit10], Wnd"""
-    name = 'mov'
-    mask = 0xF80000
-    code = 0x900000
-    feat = ida.CF_USE1 | ida.CF_CHG2
-
-    def _decode(self, insn, code):
-        # 1001 0kkk kBkk kddd dkkk ssss
-
-        insn.Op1.type = ida.o_displ
-        insn.Op1.phrase = ireg.W0 + (code & 0x00000F)
-        insn.Op1.addr = (
-            ((code & 0x038000) >> 11)
-            + ((code & 0x003800) >> 8)
-            + ((code & 0x000070) >> 4)
-        ) * (-2 if code & 0x040000 else 2)
-        insn.Op1.dtyp = ida.dt_word
-
-        insn.Op2.type = ida.o_reg
-        insn.Op2.reg = ireg.W0 + ((code & 0x000780) >> 7)
-        insn.Op2.dtyp = ida.dt_word
-
-        if code & 0x004000:  # B
-            insn.Op1.addr //= 2
-            insn.Op1.dtyp = ida.dt_byte
-            insn.Op2.dtyp = ida.dt_byte
-            insn.auxpref |= AUX_SZ_BYTE
-
-
-class I_mov_wp(Instruction):
-    """MOV{.B} Wns, [Wd + Slit10]"""
-    name = 'mov'
-    mask = 0xF80000
-    code = 0x980000
-    feat = ida.CF_USE1 | ida.CF_CHG2
-
-    def _decode(self, insn, code):
-        # 1001 1kkk kBkk kddd dkkk ssss
-
-        insn.Op1.type = ida.o_reg
-        insn.Op1.reg = ireg.W0 + (code & 0x00000F)
-        insn.Op1.dtyp = ida.dt_word
-
-        insn.Op2.type = ida.o_displ
-        insn.Op1.phrase = ireg.W0 + ((code & 0x000780) >> 7)
-        insn.Op1.addr = (
-            ((code & 0x038000) >> 11)
-            + ((code & 0x003800) >> 8)
-            + ((code & 0x000070) >> 4)
-        ) * (-2 if code & 0x040000 else 2)
-        insn.Op1.dtyp = ida.dt_word
-
-        if code & 0x004000:  # B
-            insn.Op2.addr //= 2
-            insn.Op1.dtyp = ida.dt_byte
-            insn.Op2.dtyp = ida.dt_byte
-            insn.auxpref |= AUX_SZ_BYTE
-
-
-class I_mov_lbw(Instruction):
-    """MOV.B #lit8, Wnd"""
-    name = 'mov'
-    mask = 0xFFF000
-    code = 0xB3C000
-    feat = ida.CF_USE1 | ida.CF_CHG2
-
-    def _decode(self, insn, code):
-        # 1011 0011 1100 kkkk kkkk dddd
-
-        insn.Op1.type = ida.o_imm
-        insn.Op1.value = (code & 0x000FF0) >> 4
-        insn.Op1.dtyp = ida.dt_byte
-
-        insn.Op2.type = ida.o_reg
-        insn.Op2.reg = ireg.W0 + (code & 0x00000F)
-        insn.Op2.dtyp = ida.dt_byte
-
-
-class I_mov_wrf(Instruction):
+class I_mov_wr_f(Instruction):
     """MOV{.B} WREG, f"""
     name = 'mov'
     mask = 0xFF8000
@@ -316,64 +283,113 @@ class I_mov_wrf(Instruction):
     feat = ida.CF_USE1 | ida.CF_CHG2
 
     def _decode(self, insn, code):
-        # 1011 0111 1B1f ffff ffff ffff
-
-        insn.Op1.type = ida.o_reg
-        insn.Op1.reg = ireg.W0
-        insn.Op1.specflag1 = OPS1_WREG
-        insn.Op1.dtyp = ida.dt_word
-
-        insn.Op2.type = ida.o_mem
-        insn.Op2.addr = ida.map_data_ea(insn, code & 0x001FFF)
-        insn.Op2.dtyp = ida.dt_word
-
-        if code & 0x004000:  # B
-            insn.Op1.dtyp = ida.dt_byte
-            insn.Op2.dtyp = ida.dt_byte
-            insn.auxpref |= AUX_SZ_BYTE
+        set_op_wreg(insn, 0)
+        set_op_mem(insn, 1, mask_f13_0(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
 
 
-class I_mov_f(Instruction):
-    """MOV{.B} f"""
+class I_mov_f_w(Instruction):
+    """MOV f, Wnd"""
     name = 'mov'
-    mask = 0xFFA000
-    code = 0xBF8000
-    feat = ida.CF_CHG1
-
-    def _decode(self, insn, code):
-        # 1011 1111 1B0f ffff ffff ffff
-
-        insn.Op1.type = ida.o_mem
-        insn.Op1.addr = ida.map_data_ea(insn, code & 0x001FFF)
-        insn.Op1.dtyp = ida.dt_word
-
-        if code & 0x004000:  # B
-            insn.Op1.dtyp = ida.dt_byte
-            insn.auxpref |= AUX_SZ_BYTE
-
-
-class I_mov_fwr(Instruction):
-    """MOV{.B} f, WREG"""
-    name = 'mov'
-    mask = 0xFFA000
-    code = 0xBFA000
+    mask = 0xF80000
+    code = 0x800000
     feat = ida.CF_USE1 | ida.CF_CHG2
 
     def _decode(self, insn, code):
-        # 1011 1111 1B1f ffff ffff ffff
+        set_op_mem(insn, 0, mask_f15_4(code))
+        set_op_reg(insn, 1, mask_d_0(code))
 
-        insn.Op1.type = ida.o_mem
-        insn.Op1.addr = ida.map_data_ea(insn, code & 0x001FFF)
-        insn.Op1.dtyp = ida.dt_word
 
-        insn.Op2.type = ida.o_reg
-        insn.Op2.reg = ireg.W0
-        insn.Op2.specflag1 = OPS1_WREG
+class I_mov_w_f(Instruction):
+    """MOV Wns, f"""
+    name = 'mov'
+    mask = 0xF80000
+    code = 0x880000
+    feat = ida.CF_USE1 | ida.CF_CHG2
 
-        if code & 0x004000:  # B
-            insn.Op1.dtyp = ida.dt_byte
-            insn.Op2.dtyp = ida.dt_byte
-            insn.auxpref |= AUX_SZ_BYTE
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, mask_s_0(code))
+        set_op_mem(insn, 1, mask_f15_4(code))
+
+
+class I_mov_l8_w(Instruction):
+    """MOV.B #lit8, Wnd"""
+    name = 'mov'
+    mask = 0xFFF000
+    code = 0xB3C000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_imm(insn, 0, mask_k8_4(code))
+        set_op_reg(insn, 1, mask_d_0(code))
+        set_insn_byte(insn)
+
+
+class I_mov_l16_w(Instruction):
+    """MOV #lit16, Wnd"""
+    name = 'mov'
+    mask = 0xF00000
+    code = 0x200000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_imm(insn, 0, mask_k16_4(code))
+        set_op_reg(insn, 1, mask_d_0(code))
+
+
+class I_mov_wso_w(Instruction):
+    """MOV{.B} [Ws + Slit10], Wnd"""
+    name = 'mov'
+    mask = 0xF80000
+    code = 0x900000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_displ(insn, 0, mask_s_0(code), mask_slit10_4(code))
+        set_op_reg(insn, 1, mask_d_7(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
+            insn.ops[0].addr //= 2
+
+
+class I_mov_w_wso(Instruction):
+    """MOV{.B} Wns, [Wd + Slit10]"""
+    name = 'mov'
+    mask = 0xF80000
+    code = 0x980000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, mask_s_0(code))
+        set_op_displ(insn, 1, mask_d_7(code), mask_slit10_4(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
+            insn.Op2.addr //= 2
+
+
+class I_mov_wp_wp(Instruction):
+    """MOV{.B} Ws, Wd"""
+    name = 'mov'
+    mask = 0xF80000
+    code = 0x780000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(
+            insn, 0,
+            mask_s_0(code),
+            mask_g_4(code),
+            mask_w_15(code)
+        )
+        set_op_phrase(
+            insn, 1,
+            mask_d_7(code),
+            mask_h_11(code),
+            mask_w_15(code)
+        )
+        if mask_B_14(code):
+            set_insn_byte(insn)
 
 
 class InstructionMatcher(object):
