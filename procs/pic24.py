@@ -1,6 +1,11 @@
 import idaapi as ida
 
 
+###############################################################################
+# Assembler Definitions                                                       #
+###############################################################################
+
+
 asm_xc16 = {
     'name': 'Microchip XC16',
 
@@ -48,6 +53,11 @@ asm_xc16 = {
     'a_shl': '<<',
     'a_shr': '>>',
 }
+
+
+###############################################################################
+# Registers                                                                   #
+###############################################################################
 
 
 class Enum(object):
@@ -100,6 +110,11 @@ registers = [
 ireg = Enum(registers)
 
 
+###############################################################################
+# Flags & Decoding Helpers                                                    #
+###############################################################################
+
+
 def insn_get_next_word(insn):
     res = ida.get_wide_word(insn.ea + insn.size)
     insn.size += 2
@@ -110,6 +125,11 @@ IP_DOTB = 0x01
 OPS1_WREG = 0x1
 
 AUX_SZ_BYTE = 0x01
+
+
+###############################################################################
+# Instructions                                                                #
+###############################################################################
 
 
 class Instruction(object):
@@ -356,7 +376,7 @@ class I_mov_fwr(Instruction):
             insn.auxpref |= AUX_SZ_BYTE
 
 
-class Matcher(object):
+class InstructionMatcher(object):
     def __init__(self):
         self.instructions = []
 
@@ -375,7 +395,7 @@ instructions = [
     {'name': '', 'feature': 0},
 ]
 
-decode_map = list([Matcher() for idx in range(0, 256)])
+decode_map = list([InstructionMatcher() for idx in range(0, 256)])
 for idx, itype in enumerate(Instruction.__subclasses__(), 1):
     setattr(itype, 'index', idx)
 
@@ -391,6 +411,11 @@ for idx, itype in enumerate(Instruction.__subclasses__(), 1):
     op_high = (op_code | ~op_mask) & 0xFF
     for op in range(op_code, op_high + 1):
         decode_map[op].add(inst)
+
+
+###############################################################################
+# Processor Class                                                             #
+###############################################################################
 
 
 class PIC24Processor(ida.processor_t):
@@ -416,10 +441,8 @@ class PIC24Processor(ida.processor_t):
 
     reg_names = registers
 
-    #segreg_size = 1
-    #reg_first_sreg = _ireg.TBLPAG
-    segreg_size = 0
-    reg_first_sreg = ireg.CS
+    segreg_size = 1
+    reg_first_sreg = ireg.TBLPAG
     reg_last_sreg = ireg.DS
     reg_code_sreg = ireg.CS
     reg_data_sreg = ireg.DS
