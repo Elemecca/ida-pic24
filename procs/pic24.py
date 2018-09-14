@@ -131,8 +131,16 @@ def mask_A_15(code):
     return (code & 0x008000) != 0
 
 
+def mask_B_10(code):
+    return (code & 0x000400) != 0
+
+
 def mask_B_14(code):
     return (code & 0x004000) != 0
+
+
+def mask_b_12(code):
+    return (code & 0x00F000) >> 12
 
 
 def mask_d_0(code):
@@ -567,6 +575,24 @@ class I_asr_w_w_w(Instruction):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
         set_op_reg(insn, 1, ireg.W0 + mask_s_0(code))
         set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
+
+
+#######################################
+# BCLR                             {{{2
+
+
+class I_bclr_wp_l4(Instruction):
+    """BCLR{.B} Ws, #bit4"""
+    name = 'bclr'
+    mask = 0xFF0B80
+    code = 0xA10000
+    feat = ida.CF_CHG1 | ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
+        set_op_imm(insn, 1, mask_b_12(code))
+        if mask_B_10(code):
+            set_insn_byte(insn)
 
 
 #######################################
