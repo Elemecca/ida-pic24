@@ -799,7 +799,6 @@ class PIC24Processor(ida.processor_t):
         ida.PR_USE32   # use 32-bit (as opposed to 16-bit) addresses
         | ida.PRN_HEX  # show numbers in hex by default
         | ida.PR_NO_SEGMOVE  # we don't support move_segm()
-        | ida.PR_WORD_INS
         | ida.PR_SEGTRANS
     )
 
