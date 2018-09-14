@@ -61,6 +61,11 @@ OPS1_WREG = 0x1
 
 AUX_SZ_BYTE = 0x01
 
+def insn_get_next_word(insn):
+    res = idaapi.get_wide_word(insn.ea + insn.size)
+    insn.size += 2
+    return res
+
 
 class PIC24Processor(idaapi.processor_t):
     id = 0x8000 + 24
@@ -214,7 +219,7 @@ class PIC24Processor(idaapi.processor_t):
 
         # MOV{.B} Ws, Wd
         # 0111 1www wBhh hddd dggg ssss
-        if code & 0xF80000 == 0x780000:
+        elif code & 0xF80000 == 0x780000:
             insn.itype = self._itype.movww
 
             insn.Op1.type = idaapi.o_phrase
@@ -236,7 +241,7 @@ class PIC24Processor(idaapi.processor_t):
 
         # MOV f, Wnd
         # 1000 0fff ffff ffff ffff dddd
-        if code & 0xF80000 == 0x800000:
+        elif code & 0xF80000 == 0x800000:
             insn.itype = self._itype.movfw
 
             insn.Op1.type = idaapi.o_mem
@@ -367,7 +372,7 @@ class PIC24Processor(idaapi.processor_t):
         insn.itype = self._itype.null
 
     def notify_ana(self, insn):
-        code = insn.get_next_word()
+        code = insn_get_next_word(insn)
         high = code >> 20 & 0xF
         low = code >> 16 & 0xF
 
@@ -406,7 +411,7 @@ class PIC24Processor(idaapi.processor_t):
         return insn.size #if insn.itype != self._itype.null else 0
 
     def notify_emu(self, insn):
-        idaapi.add_cref(insn.ea, insn.ea + insn.size, idaapi.fl_F)
+        #idaapi.add_cref(insn.ea, insn.ea + insn.size, idaapi.fl_F)
         return 1
 
     def out_mnem(self, ctx):
