@@ -74,6 +74,8 @@ class PIC24Processor(idaapi.processor_t):
         idaapi.PR_USE32   # use 32-bit (as opposed to 16-bit) addresses
         | idaapi.PRN_HEX  # show numbers in hex by default
         | idaapi.PR_NO_SEGMOVE  # we don't support move_segm()
+        | idaapi.PR_WORD_INS
+        | idaapi.PR_SEGTRANS
     )
 
     # number of bits in a byte
@@ -195,13 +197,6 @@ class PIC24Processor(idaapi.processor_t):
 
     instruc_start = 0
     instruc_end = len(instruc) + 1
-
-
-    def __init__(self):
-        idaapi.processor_t.__init__(self)
-
-    def notify_init(self, idp_file):
-        return 1
 
     def _decode_mov(self, insn, code):
         # MOV #lit16, Wnd
@@ -408,10 +403,14 @@ class PIC24Processor(idaapi.processor_t):
         else:
             self._decode_unknown(insn, code)
 
-        return insn.size #if insn.itype != self._itype.null else 0
+        return insn.size if insn.itype != self._itype.null else 0
 
     def notify_emu(self, insn):
-        #idaapi.add_cref(insn.ea, insn.ea + insn.size, idaapi.fl_F)
+        feat = insn.get_canon_feature()
+
+        if not feat & idaapi.CF_STOP:
+            idaapi.add_cref(insn.ea, insn.ea + insn.size, idaapi.fl_F)
+
         return 1
 
     def out_mnem(self, ctx):
