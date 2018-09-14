@@ -159,6 +159,10 @@ def mask_h_11(code):
     return (code & 0x003800) >> 11
 
 
+def mask_k4_0(code):
+    return code & 0x00000F
+
+
 def mask_k5_0(code):
     return code & 0x00001F
 
@@ -335,6 +339,26 @@ class Instruction_w_wp_wp_B(Instruction):
             set_insn_byte(insn)
 
 
+class Instruction_wp_wp_B(Instruction):
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(
+            insn, 0,
+            mask_s_0(code),
+            mask_g_4(code),
+            mask_w_15(code)
+        )
+        set_op_phrase(
+            insn, 1,
+            mask_d_7(code),
+            mask_h_11(code),
+            mask_w_15(code)
+        )
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
 #######################################
 # ADD                              {{{2
 
@@ -495,6 +519,57 @@ class I_and_w_wp_wp(Instruction_w_wp_wp_B):
 
 
 #######################################
+# ASR                              {{{2
+
+
+class I_asr_f_wr(Instruction_f_wr_B):
+    """ASR{.B} f, WREG"""
+    name = 'asr'
+    mask = 0xFFA000
+    code = 0xD58000
+
+
+class I_asr_f(Instruction_f_B):
+    """ASR{.B} f"""
+    name = 'asr'
+    mask = 0xFFA000
+    code = 0xD5A000
+
+
+class I_asr_wp_wp(Instruction_wp_wp_B):
+    """ASR{.B} [Ws], [Wd]"""
+    name = 'asr'
+    mask = 0xFF8000
+    code = 0xD18000
+
+
+class I_asr_w_l4_w(Instruction):
+    """ASR Wb, #lit4, Wnd"""
+    name = 'asr'
+    mask = 0xFF8070
+    code = 0xDE8040
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_imm(insn, 1, mask_k4_0(code))
+        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
+
+
+class I_asr_w_w_w(Instruction):
+    """ASR Wb, Wns, Wnd"""
+    name = 'asr'
+    mask = 0xFF8070
+    code = 0xDE8000
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_s_0(code))
+        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
+
+
+#######################################
 # MOV                              {{{2
 
 
@@ -605,28 +680,11 @@ class I_mov_w_wso(Instruction):
             insn.Op2.addr //= 2
 
 
-class I_mov_wp_wp(Instruction):
+class I_mov_wp_wp(Instruction_wp_wp_B):
     """MOV{.B} Ws, Wd"""
     name = 'mov'
     mask = 0xF80000
     code = 0x780000
-    feat = ida.CF_USE1 | ida.CF_CHG2
-
-    def _decode(self, insn, code):
-        set_op_phrase(
-            insn, 0,
-            mask_s_0(code),
-            mask_g_4(code),
-            mask_w_15(code)
-        )
-        set_op_phrase(
-            insn, 1,
-            mask_d_7(code),
-            mask_h_11(code),
-            mask_w_15(code)
-        )
-        if mask_B_14(code):
-            set_insn_byte(insn)
 
 
 #######################################
