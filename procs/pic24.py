@@ -2,7 +2,7 @@ import idaapi as ida
 
 
 ###############################################################################
-# Assembler Definitions                                                       #
+# Assembler Definitions                                                    {{{1
 ###############################################################################
 
 
@@ -56,7 +56,7 @@ asm_xc16 = {
 
 
 ###############################################################################
-# Registers                                                                   #
+# Registers                                                                {{{1
 ###############################################################################
 
 
@@ -111,7 +111,7 @@ ireg = Enum(registers)
 
 
 ###############################################################################
-# Flags & Decoding Helpers                                                    #
+# Flags & Decoding Helpers                                                 {{{1
 ###############################################################################
 
 
@@ -263,7 +263,7 @@ def set_insn_byte(insn):
 
 
 ###############################################################################
-# Instructions                                                                #
+# Instructions                                                             {{{1
 ###############################################################################
 
 
@@ -280,7 +280,7 @@ class Instruction(object):
 
 
 #######################################
-# ADD
+# ADD                              {{{2
 
 
 class I_add_f_wr(Instruction):
@@ -472,7 +472,81 @@ class I_addc_w_wp_wp(Instruction):
 
 
 #######################################
-# MOV
+# AND                              {{{2
+
+class I_and_f_wr(Instruction):
+    """AND{.B} f, WREG"""
+    name = 'and'
+    mask = 0xFFA000
+    code = 0xB60000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_mem(insn, 0, mask_f13_0(code))
+        set_op_wreg(insn, 1)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_and_f(Instruction):
+    """AND{.B} f"""
+    name = 'and'
+    mask = 0xFFA000
+    code = 0xB62000
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_mem(insn, 0, mask_f13_0(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_and_l10_w(Instruction):
+    """AND{.B} #lit10, Wn"""
+    name = 'and'
+    mask = 0xFF8000
+    code = 0xB20000
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_imm(insn, 0, mask_k10_4(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_d_0(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_and_w_l5_wp(Instruction):
+    """AND{.B} Wb, #lit5, [Wd]"""
+    name = 'and'
+    mask = 0xF80060
+    code = 0x600060
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_15(code))
+        set_op_imm(insn, 1, mask_k5_0(code))
+        set_op_phrase(insn, 2, mask_d_7(code), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_and_w_wp_wp(Instruction):
+    """AND{.B} Wb, [Ws], [Wd]"""
+    name = 'and'
+    mask = 0xF80000
+    code = 0x600000
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_15(code))
+        set_op_phrase(insn, 1, mask_s_0(code), mask_p_4(code), 0)
+        set_op_phrase(insn, 2, mask_d_7(code), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+#######################################
+# MOV                              {{{2
 
 
 class I_mov_f_wr(Instruction):
@@ -657,7 +731,7 @@ for idx, itype in enumerate(Instruction.__subclasses__(), 1):
 
 
 ###############################################################################
-# Processor Class                                                             #
+# Processor Class                                                          {{{1
 ###############################################################################
 
 
