@@ -91,8 +91,8 @@ registers = [
     'STATUS',
 
     # dsPIC registers
-    'ACCA',
-    'ACCB',
+    'A',  # ACCA
+    'B',  # ACCB
     'DCOUNT',
     'DOSTART',
     'DOEND',
@@ -127,6 +127,10 @@ OPS1_WREG = 0x1
 AUX_SZ_BYTE = 0x01
 
 
+def mask_A_15(code):
+    return (code & 0x008000) != 0
+
+
 def mask_B_14(code):
     return (code & 0x004000) != 0
 
@@ -155,16 +159,39 @@ def mask_h_11(code):
     return (code & 0x003800) >> 11
 
 
+def mask_k5_0(code):
+    return code & 0x00001F
+
+
 def mask_k8_4(code):
     return (code & 0x000FF0) >> 4
+
+
+def mask_k10_4(code):
+    return (code & 0x003FF0) >> 4
 
 
 def mask_k16_4(code):
     return (code & 0x0FFFF0) >> 4
 
 
+def mask_p_4(code):
+    return (code & 0x000070) >> 4
+
+
+def mask_q_11(code):
+    return (code & 0x003800) >> 11
+
+
 def mask_s_0(code):
     return code & 0x00000F
+
+
+def mask_slit4_7(code):
+    return (
+        ((code & 0x000380) >> 7)
+        * (-1 if (code & 0x000400) else 1)
+    )
 
 
 def mask_slit10_4(code):
@@ -175,6 +202,10 @@ def mask_slit10_4(code):
             + ((code & 0x000070) >> 4)
         ) * (-2 if code & 0x040000 else 2)
     )
+
+
+def mask_w_11(code):
+    return (code & 0x007800) >> 11
 
 
 def mask_w_15(code):
@@ -189,7 +220,7 @@ def set_op_imm(insn, op, value):
 
 def set_op_reg(insn, op, reg):
     insn.ops[op].type = ida.o_reg
-    insn.ops[op].reg = ireg.W0 + reg
+    insn.ops[op].reg = reg
     insn.ops[op].dtyp = ida.dt_word
 
 
@@ -248,6 +279,202 @@ class Instruction(object):
         self._decode(insn, code)
 
 
+#######################################
+# ADD
+
+
+class I_add_f_wr(Instruction):
+    """ADD{.B} f, WREG"""
+    name = 'add'
+    mask = 0xFFA000
+    code = 0xB40000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_mem(insn, 0, mask_f13_0(code))
+        set_op_wreg(insn, 1)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_add_f(Instruction):
+    """ADD{.B} f"""
+    name = 'add'
+    mask = 0xFFA000
+    code = 0xB44000
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_mem(insn, 0, mask_f13_0(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_add_l10_w(Instruction):
+    """ADD{.B} #lit10, Wn"""
+    name = 'add'
+    mask = 0xFF8000
+    code = 0xB00000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_imm(insn, 0, mask_k10_4(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_d_0(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_add_w_l5_wp(Instruction):
+    """ADD{.B} Wb, #lit5, [Wd]"""
+    name = 'add'
+    mask = 0xF80060
+    code = 0x400060
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_15(code))
+        set_op_imm(insn, 1, mask_k5_0(code))
+        set_op_phrase(insn, 2, mask_d_7(code), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_add_w_wp_wp(Instruction):
+    """ADD{.B} Wb [Ws], [Wd]"""
+    name = 'add'
+    mask = 0xF80000
+    code = 0x400000
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_15(code))
+        set_op_phrase(insn, 1, mask_s_0(code), mask_p_4(code), 0)
+        set_op_phrase(insn, 2, mask_d_7(code), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_add_a(Instruction):
+    """ADD Acc"""
+    name = 'add'
+    mask = 0xFF7FFF
+    code = 0xCB0000
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.A if mask_A_15(code) else ireg.B)
+
+
+class I_add_wp_a(Instruction):
+    """ADD [Ws], Acc"""
+    name = 'add'
+    mask = 0xFF0700
+    code = 0xC90000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(
+            insn, 0,
+            mask_s_0(code),
+            mask_g_4(code),
+            mask_w_11(code)
+        )
+        set_op_reg(insn, 1, ireg.A if mask_A_15(code) else ireg.B)
+
+
+class I_add_wp_sl4_a(Instruction):
+    """ADD [Ws], {#Slit4,} Acc"""
+    name = 'add'
+    mask = 0xFF0000
+    code = 0xC90000
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_phrase(
+            insn, 0,
+            mask_s_0(code),
+            mask_g_4(code),
+            mask_w_11(code)
+        )
+        set_op_imm(insn, 1, mask_slit4_7(code))
+        set_op_reg(insn, 2, ireg.A if mask_A_15(code) else ireg.B)
+
+
+class I_addc_f_wr(Instruction):
+    """ADDC{.B} f, WREG"""
+    name = 'addc'
+    mask = 0xFFA000
+    code = 0xB48000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_mem(insn, 0, mask_f13_0(code))
+        set_op_wreg(insn, 1)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_addc_f(Instruction):
+    """ADDC{.B} f"""
+    name = 'addc'
+    mask = 0xFFA000
+    code = 0xB4A000
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_mem(insn, 0, mask_f13_0(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_addc_l10_w(Instruction):
+    """ADDC{.B} #lit10, Wn"""
+    name = 'addc'
+    mask = 0xFF8000
+    code = 0xB08000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_imm(insn, 0, mask_k10_4(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_d_0(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_addc_w_l5_wp(Instruction):
+    """ADDC{.B} Wb, #lit5, [Wd]"""
+    name = 'addc'
+    mask = 0xF80060
+    code = 0x480060
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_15(code))
+        set_op_imm(insn, 1, mask_k5_0(code))
+        set_op_phrase(insn, 2, mask_d_7(code), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_addc_w_wp_wp(Instruction):
+    """ADDC{.B} Wb, [Ws], [Wd]"""
+    name = 'addc'
+    mask = 0xF80000
+    code = 0x480000
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_15(code))
+        set_op_phrase(insn, 1, mask_s_0(code), mask_p_4(code), 0)
+        set_op_phrase(insn, 2, mask_d_7(code), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+#######################################
+# MOV
+
+
 class I_mov_f_wr(Instruction):
     """MOV{.B} f, WREG"""
     name = 'mov'
@@ -298,7 +525,7 @@ class I_mov_f_w(Instruction):
 
     def _decode(self, insn, code):
         set_op_mem(insn, 0, mask_f15_4(code))
-        set_op_reg(insn, 1, mask_d_0(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_d_0(code))
 
 
 class I_mov_w_f(Instruction):
@@ -309,7 +536,7 @@ class I_mov_w_f(Instruction):
     feat = ida.CF_USE1 | ida.CF_CHG2
 
     def _decode(self, insn, code):
-        set_op_reg(insn, 0, mask_s_0(code))
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
         set_op_mem(insn, 1, mask_f15_4(code))
 
 
@@ -322,7 +549,7 @@ class I_mov_l8_w(Instruction):
 
     def _decode(self, insn, code):
         set_op_imm(insn, 0, mask_k8_4(code))
-        set_op_reg(insn, 1, mask_d_0(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_d_0(code))
         set_insn_byte(insn)
 
 
@@ -335,7 +562,7 @@ class I_mov_l16_w(Instruction):
 
     def _decode(self, insn, code):
         set_op_imm(insn, 0, mask_k16_4(code))
-        set_op_reg(insn, 1, mask_d_0(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_d_0(code))
 
 
 class I_mov_wso_w(Instruction):
@@ -347,7 +574,7 @@ class I_mov_wso_w(Instruction):
 
     def _decode(self, insn, code):
         set_op_displ(insn, 0, mask_s_0(code), mask_slit10_4(code))
-        set_op_reg(insn, 1, mask_d_7(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_d_7(code))
         if mask_B_14(code):
             set_insn_byte(insn)
             insn.ops[0].addr //= 2
@@ -361,7 +588,7 @@ class I_mov_w_wso(Instruction):
     feat = ida.CF_USE1 | ida.CF_CHG2
 
     def _decode(self, insn, code):
-        set_op_reg(insn, 0, mask_s_0(code))
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
         set_op_displ(insn, 1, mask_d_7(code), mask_slit10_4(code))
         if mask_B_14(code):
             set_insn_byte(insn)
