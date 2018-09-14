@@ -61,6 +61,7 @@ OPS1_WREG = 0x1
 
 AUX_SZ_BYTE = 0x01
 
+
 def insn_get_next_word(insn):
     res = idaapi.get_wide_word(insn.ea + insn.size)
     insn.size += 2
@@ -139,6 +140,8 @@ class PIC24Processor(idaapi.processor_t):
     reg_data_sreg = _ireg.DS
 
     instruc = [
+        # invalid instruction
+        # must be index 0 so uninitialized insn_t uses it
         {'name': '', '_type': 'null', 'feature': 0},
 
         # move instructions
@@ -360,11 +363,7 @@ class PIC24Processor(idaapi.processor_t):
                 insn.Op2.specflag1 = OPS1_WREG
                 insn.Op2.dtyp = insn.Op1.dtyp
 
-        else:
-            self._decode_unknown(insn, code)
 
-    def _decode_unknown(self, insn, code):
-        insn.itype = self._itype.null
 
     def notify_ana(self, insn):
         code = insn_get_next_word(insn)
@@ -376,9 +375,7 @@ class PIC24Processor(idaapi.processor_t):
         elif high == 0x7:
             if low & 0x8:
                 self._decode_mov(insn, code)
-            else:
-                # TODO
-                self._decode_unknown(insn, code)
+            # TODO
         elif high == 0x8:
             self._decode_mov(insn, code)
         elif high == 0x9:
@@ -388,20 +385,13 @@ class PIC24Processor(idaapi.processor_t):
             if low == 0x3:
                 if code & 0x008000:
                     self._decode_mov(insn, code)
-                else:
-                    # TODO
-                    self._decode_unknown(insn, code)
+                # TODO
             elif low == 0x7:
                 if code & 0x008000:
                     self._decode_mov(insn, code)
-                else:
-                    # TODO
-                    self._decode_unknown(insn, code)
+                # TODO
             elif low == 0xF:
                 self._decode_mov(insn, code)
-
-        else:
-            self._decode_unknown(insn, code)
 
         return insn.size if insn.itype != self._itype.null else 0
 
