@@ -268,6 +268,8 @@ def set_insn_byte(insn):
 
 
 class Instruction(object):
+    feat = 0
+
     def __index__(self):
         return self.index
 
@@ -277,6 +279,9 @@ class Instruction(object):
     def decode(self, insn, code):
         insn.itype = self.index
         self._decode(insn, code)
+
+    def _decode(self, insn, code):
+        pass
 
 
 #######################################
@@ -691,6 +696,28 @@ class I_mov_wp_wp(Instruction):
         )
         if mask_B_14(code):
             set_insn_byte(insn)
+
+
+#######################################
+# NOP                              {{{2
+
+
+class I_nop(Instruction):
+    """NOP"""
+    name = 'nop'
+    mask = 0xFF0000
+    code = 0x000000
+
+
+class I_nopr(Instruction):
+    """NOPR"""
+    name = 'nopr'
+    mask = 0xFF0000
+    code = 0xFF0000
+
+
+#######################################
+# Decode Map                       {{{2
 
 
 class InstructionMatcher(object):
