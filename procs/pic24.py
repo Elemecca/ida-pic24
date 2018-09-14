@@ -187,6 +187,10 @@ def mask_k16_4(code):
     return (code & 0x0FFFF0) >> 4
 
 
+def mask_lit23(code, data):
+    return (code & 0x00FFFE) | ((data & 0x0000EF) << 16)
+
+
 def mask_p_4(code):
     return (code & 0x000070) >> 4
 
@@ -213,6 +217,13 @@ def mask_slit10_4(code):
             + ((code & 0x003800) >> 8)
             + ((code & 0x000070) >> 4)
         ) * (-2 if code & 0x040000 else 2)
+    )
+
+
+def mask_slit16_0(code):
+    return (
+        (code & 0x007FFF)
+        * (-1 if (code & 0x008000) else 1)
     )
 
 
@@ -262,6 +273,16 @@ def set_op_phrase(insn, op, reg, mode, offset_reg):
     insn.ops[op].specflag3 = offset_reg
     insn.ops[op].specflag4 = mode
     insn.ops[op].dtyp = ida.dt_word
+
+
+def set_op_near(insn, op, addr):
+    insn.ops[op].type = ida.o_near
+    insn.ops[op].addr = addr
+    ida.map_code_ea(insn, insn.ops[op])
+
+
+def set_op_near_rel(insn, op, offset):
+    set_op_near(insn, op, insn.ea + insn.size + offset * 2)
 
 
 def set_insn_byte(insn):
@@ -596,6 +617,130 @@ class I_bclr_wp_l4(Instruction):
 
 
 #######################################
+# BRA                              {{{2
+
+
+class I_bra_slit16(Instruction):
+    """BRA Expr"""
+    name = 'bra'
+    mask = 0xFF0000
+    code = 0x370000
+    feat = ida.CF_USE1 | ida.CF_STOP
+
+    def _decode(self, insn, code):
+        set_op_near_rel(insn, 0, mask_slit16_0(code))
+
+
+class I_bra_w(Instruction):
+    """BRA Wn"""
+    name = 'bra'
+    mask = 0xFFFFF0
+    code = 0x016000
+    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+class I_bra_w_E(Instruction):
+    """BRA Wn"""
+    name = 'bra'
+    mask = 0xFFFFF0
+    code = 0x010600
+    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+#######################################
+# CALL                             {{{2
+
+
+class I_call_l23(Instruction):
+    """CALL Expr"""
+    name = 'call'
+    mask = 0xFF0000
+    code = 0x020000
+    feat = ida.CF_USE1 | ida.CF_CALL
+
+    def _decode(self, insn, code):
+        data = insn_get_next_word(insn)
+        set_op_near(insn, 0, mask_lit23(code, data))
+
+
+class I_call_w(Instruction):
+    """CALL Wn"""
+    name = 'call'
+    mask = 0xFFFFF0
+    code = 0x010000
+    feat = ida.CF_USE1 | ida.CF_CALL | ida.CF_JUMP
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+class I_calll_w(Instruction):
+    """CALL.L Wn"""
+    name = 'call.l'
+    mask = 0xFF87F0
+    code = 0x018000
+    feat = ida.CF_USE1 | ida.CF_CALL | ida.CF_JUMP
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+#######################################
+# GOTO                             {{{2
+
+
+class I_goto_l23(Instruction):
+    """GOTO Expr"""
+    name = 'goto'
+    mask = 0xFF0000
+    code = 0x040000
+    feat = ida.CF_USE1 | ida.CF_STOP
+
+    def _decode(self, insn, code):
+        data = insn_get_next_word(insn)
+        set_op_near(insn, 0, mask_lit23(code, data))
+
+
+class I_goto_w(Instruction):
+    """GOTO Wn"""
+    name = 'goto'
+    mask = 0xFFFFF0
+    code = 0x014000
+    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+class I_goto_w_E(Instruction):
+    """GOTO Wn"""
+    name = 'goto'
+    mask = 0xFFFFF0
+    code = 0x010400
+    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+class I_gotol_w(Instruction):
+    """GOTO.L Wn"""
+    name = 'goto.l'
+    mask = 0xFF87F0
+    code = 0x018400
+    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+#######################################
 # MOV                              {{{2
 
 
@@ -732,6 +877,43 @@ class I_nopr(Instruction):
 
 
 #######################################
+# RCALL                            {{{2
+
+
+class I_rcall_slit16(Instruction):
+    """RCALL Expr"""
+    name = 'rcall'
+    mask = 0xFF0000
+    code = 0x070000
+    feat = ida.CF_USE1 | ida.CF_CALL
+
+    def _decode(self, insn, code):
+        set_op_near_rel(insn, 0, mask_slit16_0(code))
+
+
+class I_rcall_w(Instruction):
+    """RCALL Wn"""
+    name = 'rcall'
+    mask = 0xFFFFF0
+    code = 0x014000
+    feat = ida.CF_USE1 | ida.CF_CALL | ida.CF_JUMP
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+class I_rcall_w_E(Instruction):
+    """RCALL Wn"""
+    name = 'rcall'
+    mask = 0xFFFFF0
+    code = 0x010400
+    feat = ida.CF_USE1 | ida.CF_CALL | ida.CF_JUMP
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+#######################################
 # Decode Map                       {{{2
 
 
@@ -829,8 +1011,33 @@ class PIC24Processor(ida.processor_t):
         decode_map[(code >> 16) & 0xFF].decode(insn, code)
         return insn.size if insn.itype != 0 else 0
 
+    def _emu_operand(self, insn, op, is_write):
+        feat = insn.get_canon_feature()
+        dref_flag = ida.dr_W if is_write else ida.dr_R
+
+        if op.type == ida.o_mem:
+            # create data xrefs
+            insn.create_op_data(op.addr, op)
+            insn.add_dref(op.addr, op.offb, dref_flag)
+
+        elif op.type == ida.o_near:
+            # create code xrefs
+            insn.add_cref(
+                op.addr, op.offb,
+                (ida.fl_CN if (feat & ida.CF_CALL) else ida.fl_JN)
+            )
+
     def notify_emu(self, insn):
         feat = insn.get_canon_feature()
+
+        for idx in range(0, ida.UA_MAXOP):
+            op = insn.ops[idx]
+            if op.type == ida.o_void:
+                break
+            if (feat & getattr(ida, 'CF_USE' + str(idx + 1))) != 0:
+                self._emu_operand(insn, op, False)
+            if (feat & getattr(ida, 'CF_CHG' + str(idx + 1))) != 0:
+                self._emu_operand(insn, op, True)
 
         if not feat & ida.CF_STOP:
             ida.add_cref(insn.ea, insn.ea + insn.size, ida.fl_F)
@@ -854,8 +1061,12 @@ class PIC24Processor(ida.processor_t):
             ctx.out_symbol('#')
             ctx.out_value(op, ida.OOFW_IMM)
 
-        elif op.type == ida.o_mem:
-            ctx.out_value(op, ida.OOF_ADDR | ida.OOFW_24)
+        elif op.type in [ida.o_mem, ida.o_near]:
+            if not ctx.out_name_expr(op, op.addr):
+                ctx.out_tagon(ida.COLOR_ERROR)
+                ctx.out_value(op, ida.OOF_ADDR)
+                ctx.out_tagoff(ida.COLOR_ERROR)
+                ida.remember_problem(ida.PR_NONAME, ctx.insn.ea)
 
         elif op.type == ida.o_displ:
             ctx.out_symbol('[')
