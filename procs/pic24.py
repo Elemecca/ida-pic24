@@ -466,6 +466,14 @@ class Instruction_f_b_B(Instruction):
             set_insn_byte(insn)
 
 
+class Instruction_wp_b(Instruction):
+    feat = ida.CF_USE1 | ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
+        set_op_imm(insn, 1, mask_b_12(code))
+
+
 class Instruction_wp_b_B(Instruction):
     feat = ida.CF_USE1 | ida.CF_CHG1
 
@@ -474,6 +482,14 @@ class Instruction_wp_b_B(Instruction):
         set_op_imm(insn, 1, mask_b_12(code))
         if mask_B_10(code):
             set_insn_byte(insn)
+
+
+class Instruction_wp_w(Instruction):
+    feat = ida.CF_USE1 | ida.CF_CHG1 | ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
+        set_op_reg(insn, 1, ireg.W0 + mask_w_11(code))
 
 
 #######################################
@@ -781,6 +797,147 @@ class I_bset_wp_b(Instruction_wp_b_B):
     name = 'bset'
     mask = 0xFF0B80
     code = 0xA00000
+
+
+#######################################
+# BSW                              {{{2
+
+
+class I_bswc_wp_w(Instruction_wp_w):
+    """BSW.C [Ws], Wb"""
+    name = 'bsw.c'
+    mask = 0xFF8780
+    code = 0xAD0000
+
+
+class I_bswz_wp_w(Instruction_wp_w):
+    """BSW.Z [Ws], Wb"""
+    name = 'bsw.z'
+    mask = 0xFF8780
+    code = 0xAD8000
+
+
+#######################################
+# BTG                              {{{2
+
+
+class I_btg_f_b(Instruction_f_b_B):
+    """BTG{.B} f, #bit4"""
+    name = 'btg'
+    mask = 0xFF0000
+    code = 0xAA0000
+
+
+class I_btg_wp_b(Instruction_wp_b_B):
+    """BTG{.B} Ws, #bit4"""
+    name = 'btg'
+    mask = 0xFF0B80
+    code = 0xA20000
+
+
+#######################################
+# BTSC                             {{{2
+
+
+class I_btsc_f_b(Instruction_f_b_B):
+    """BTSC{.B} f, #bit4"""
+    name = 'btsc'
+    mask = 0xFF0000
+    code = 0xAF0000
+
+
+class I_btsc_wp_b(Instruction_wp_b):
+    """BTSC Ws, #bit4"""
+    name = 'btsc'
+    mask = 0xFF0F80
+    code = 0xA70000
+
+
+#######################################
+# BTSS                             {{{2
+
+
+class I_btss_f_b(Instruction_f_b_B):
+    """BTSS{.B} f, #bit4"""
+    name = 'btss'
+    mask = 0xFF0000
+    code = 0xAE0000
+
+
+class I_btss_wp_b(Instruction_wp_b):
+    """BTSS Ws, #bit4"""
+    name = 'btss'
+    mask = 0xFF0F80
+    code = 0xA60000
+
+
+#######################################
+# BTST                             {{{2
+
+
+class I_btst_f_b(Instruction_f_b_B):
+    """BTST{.B} f, #bit4"""
+    name = 'btst'
+    mask = 0xFF0000
+    code = 0xAB0000
+    feat = ida.CF_USE1
+
+
+class I_btstc_wp_b(Instruction_wp_b):
+    """BTST.C Ws, #bit4"""
+    name = 'btst.c'
+    mask = 0xFF0780
+    code = 0xA30000
+    feat = ida.CF_USE1
+
+
+class I_btstz_wp_b(Instruction_wp_b):
+    """BTST.Z Ws, #bit4"""
+    name = 'btst.z'
+    mask = 0xFF0780
+    code = 0xA30800
+    feat = ida.CF_USE1
+
+
+class I_btstc_wp_w(Instruction_wp_w):
+    """BTST.C Ws, Wb"""
+    name = 'btst.c'
+    mask = 0xFF8780
+    code = 0xA50000
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+
+class I_btstz_wp_w(Instruction_wp_w):
+    """BTST.Z Ws, Wb"""
+    name = 'btst.z'
+    mask = 0xFF8780
+    code = 0xA58000
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+
+#######################################
+# BTSTS                            {{{2
+
+
+class I_btsts_f_b(Instruction_f_b_B):
+    """BTSTS{.B} f, #bit4"""
+    name = 'btsts'
+    mask = 0xFF0000
+    code = 0xAC0000
+
+
+class I_btstsc_wp_b(Instruction_wp_b):
+    """BTSTS.C Ws, #bit4"""
+    name = 'btsts.c'
+    mask = 0xFF0F80
+    code = 0xA40000
+
+
+class I_btstsz_wp_b(Instruction_wp_b):
+    """BTSTS.Z Ws, #bit4"""
+    name = 'btsts.z'
+    mask = 0xFF0F80
+    code = 0xA40800
 
 
 #######################################
