@@ -172,6 +172,10 @@ def mask_B_14(code):
     return (code & 0x004000) != 0
 
 
+def mask_b_0(code):
+    return ((code & 0x00E000) >> 12) | (code & 0x000001)
+
+
 def mask_b_12(code):
     return (code & 0x00F000) >> 12
 
@@ -182,6 +186,10 @@ def mask_d_0(code):
 
 def mask_d_7(code):
     return (code & 0x000780) >> 7
+
+
+def mask_f12_1(code):
+    return (code & 0x001FFE) >> 1
 
 
 def mask_f13_0(code):
@@ -430,6 +438,26 @@ class Instruction_wp_wp_B(Instruction):
             set_insn_byte(insn)
 
 
+class Instruction_f_b_B(Instruction):
+    feat = ida.CF_USE1 | ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_mem(insn, 0, mask_f12_1(code))
+        set_op_imm(insn, 1, mask_b_0(code))
+        if insn.ops[1].value > 7:
+            set_insn_byte(insn)
+
+
+class Instruction_wp_b_B(Instruction):
+    feat = ida.CF_USE1 | ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
+        set_op_imm(insn, 1, mask_b_12(code))
+        if mask_B_10(code):
+            set_insn_byte(insn)
+
+
 #######################################
 # ADD                              {{{2
 
@@ -644,18 +672,18 @@ class I_asr_w_w_w(Instruction):
 # BCLR                             {{{2
 
 
-class I_bclr_wp_l4(Instruction):
+class I_bclr_f_b(Instruction_f_b_B):
+    """BCLR{.B} f, #bit4"""
+    name = 'bclr'
+    mask = 0xFF0000
+    code = 0xA90000
+
+
+class I_bclr_wp_b(Instruction_wp_b_B):
     """BCLR{.B} Ws, #bit4"""
     name = 'bclr'
     mask = 0xFF0B80
     code = 0xA10000
-    feat = ida.CF_CHG1 | ida.CF_USE2
-
-    def _decode(self, insn, code):
-        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
-        set_op_imm(insn, 1, mask_b_12(code))
-        if mask_B_10(code):
-            set_insn_byte(insn)
 
 
 #######################################
@@ -717,6 +745,24 @@ class I_bra_c_slit16_DSP(Instruction):
     def _decode(self, insn, code):
         set_op_cond(insn, 0, icond.OA + ((code & 0x030000) >> 16))
         set_op_near_rel(insn, 1, mask_slit16_0(code))
+
+
+#######################################
+# BSET                             {{{2
+
+
+class I_bset_f_b(Instruction_f_b_B):
+    """BSET{.B} f, #bit4"""
+    name = 'bset'
+    mask = 0xFF0000
+    code = 0xA80000
+
+
+class I_bset_wp_b(Instruction_wp_b_B):
+    """BSET{.B} Ws, #bit4"""
+    name = 'bset'
+    mask = 0xFF0B80
+    code = 0xA00000
 
 
 #######################################
