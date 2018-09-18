@@ -56,14 +56,15 @@ asm_xc16 = {
 
 
 ###############################################################################
-# Registers                                                                {{{1
+# Registers & Conditions                                                   {{{1
 ###############################################################################
 
 
 class Enum(object):
     def __init__(self, items):
         for idx, item in enumerate(items):
-            setattr(self, item, idx)
+            if item is not None:
+                setattr(self, item, idx)
 
 
 registers = [
@@ -110,6 +111,36 @@ registers = [
 ireg = Enum(registers)
 
 
+conditions = [
+    # branch conditions at 0x300000
+    'OV',
+    'C',
+    'Z',
+    'N',
+    'LE',
+    'LT',
+    'LEU',
+    None,
+    'NOV',
+    'NC',
+    'NZ',
+    'NN',
+    'GT',
+    'GE',
+    'GTU',
+    None,
+
+    # branch conditions at 0x060000
+    'OA',
+    'OB',
+    'SA',
+    'SB',
+]
+
+
+icond = Enum(conditions)
+
+
 ###############################################################################
 # Flags & Decoding Helpers                                                 {{{1
 ###############################################################################
@@ -120,6 +151,8 @@ def insn_get_next_word(insn):
     insn.size += 2
     return res
 
+
+o_cond = ida.o_idpspec0
 
 IP_DOTB = 0x01
 OPS1_WREG = 0x1
@@ -281,6 +314,11 @@ def set_op_near(insn, op, addr):
     ida.map_code_ea(insn, insn.ops[op])
 
 
+def set_op_cond(insn, op, cond):
+    insn.ops[op].type = o_cond
+    insn.ops[op].reg = cond
+
+
 def set_op_near_rel(insn, op, offset):
     set_op_near(insn, op, insn.ea + insn.size + offset * 2)
 
@@ -298,6 +336,10 @@ def set_insn_byte(insn):
 ###############################################################################
 # Instructions                                                             {{{1
 ###############################################################################
+
+
+#######################################
+# Abstract Instruction Classes     {{{2
 
 
 class Instruction(object):
@@ -651,6 +693,30 @@ class I_bra_w_E(Instruction):
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+class I_bra_c_slit16(Instruction):
+    """BRA Cond, Expr"""
+    name = 'bra'
+    mask = 0xF00000
+    code = 0x300000
+    feat = ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_cond(insn, 0, icond.OV + ((code & 0x0F0000) >> 16))
+        set_op_near_rel(insn, 1, mask_slit16_0(code))
+
+
+class I_bra_c_slit16_DSP(Instruction):
+    """BRA Cond, Expr"""
+    name = 'bra'
+    mask = 0xFC0000
+    code = 0x0C0000
+    feat = ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_cond(insn, 0, icond.OA + ((code & 0x030000) >> 16))
+        set_op_near_rel(insn, 1, mask_slit16_0(code))
 
 
 #######################################
@@ -1101,6 +1167,9 @@ class PIC24Processor(ida.processor_t):
 
             if mode != 0:
                 ctx.out_symbol(']')
+
+        elif op.type == o_cond:
+            ctx.out_register(conditions[op.reg])
 
         return True
 
