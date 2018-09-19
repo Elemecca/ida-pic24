@@ -404,6 +404,24 @@ class Instruction_f_B(Instruction):
             set_insn_byte(insn)
 
 
+class Instruction_wr_B(Instruction):
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_wreg(insn, 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class Instruction_wp_B(Instruction):
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_d_7(code), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
 class Instruction_l10_w_B(Instruction):
     feat = ida.CF_USE1 | ida.CF_CHG2
 
@@ -976,6 +994,47 @@ class I_calll_w(Instruction):
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+#######################################
+# CLR                              {{{2
+
+
+class I_clr_wr(Instruction_wr_B):
+    """CLR{.B} WREG"""
+    name = 'clr'
+    mask = 0xFFA000
+    code = 0xEF0000
+
+
+class I_clr_f(Instruction_f_B):
+    """CLR{.B} f"""
+    name = 'clr'
+    mask = 0xFFA000
+    code = 0xEF2000
+
+
+class I_clr_wp(Instruction_wp_B):
+    """CLR{.B} Wd"""
+    name = 'clr'
+    mask = 0xFF807F
+    code = 0xEB0000
+
+
+# TODO: missing dsPIC opcode
+# CLR Acc {,[Wx],Wxd} {,[Wy],Wyd} {,AWB}
+# DS70157F page 186
+
+
+#######################################
+# CLRWDT                           {{{2
+
+
+class I_clrwdt(Instruction):
+    """CLRWDT"""
+    name = 'clrwdt'
+    mask = 0xFFFFFF
+    code = 0xFE6000
 
 
 #######################################
