@@ -234,6 +234,10 @@ def mask_k5_0(code):
     return code & 0x00001F
 
 
+def mask_k8_0(code):
+    return ((code & 0x00038) >> 2) | (code & 0x00001F)
+
+
 def mask_k8_4(code):
     return (code & 0x000FF0) >> 4
 
@@ -429,6 +433,36 @@ class Instruction_l10_w_B(Instruction):
         set_op_imm(insn, 0, mask_k10_4(code))
         set_op_reg(insn, 1, ireg.W0 + mask_d_0(code))
         if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class Instruction_w_l5_B(Instruction):
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_imm(insn, 1, mask_k5_0(code))
+        if mask_B_10(code):
+            set_insn_byte(insn)
+
+
+class Instruction_w_l8_B(Instruction):
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_imm(insn, 0, mask_k8_0(code))
+        if mask_B_10(code):
+            set_insn_byte(insn)
+
+
+class Instruction_w_wp_B(Instruction):
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_phrase(insn, 1, mask_s_0(code), mask_p_4(code), 0)
+        if mask_B_10(code):
             set_insn_byte(insn)
 
 
@@ -1035,6 +1069,123 @@ class I_clrwdt(Instruction):
     name = 'clrwdt'
     mask = 0xFFFFFF
     code = 0xFE6000
+
+
+#######################################
+# COM                              {{{2
+
+
+class I_com_f_wr(Instruction_f_wr_B):
+    """COM{.B} f"""
+    name = 'com'
+    mask = 0xFFA000
+    code = 0xEE8000
+
+
+class I_com_f(Instruction_f_B):
+    """COM{.B} f"""
+    name = 'com'
+    mask = 0xFFA000
+    code = 0xEEA000
+
+
+class I_com_wp_wp(Instruction_wp_wp_B):
+    """COM{.B} [Ws], [Wd]"""
+    name = 'com'
+    mask = 0xFF8000
+    code = 0xEA8000
+
+
+#######################################
+# CP                               {{{2
+
+
+class I_cp_f(Instruction_f_B):
+    """CP{.B} f"""
+    name = 'cp'
+    mask = 0xFFA000
+    code = 0xE30000
+    feat = ida.CF_USE1
+
+
+class I_cp_w_l5(Instruction_w_l5_B):
+    """CP{.B} f"""
+    name = 'cp'
+    mask = 0xFF83E0
+    code = 0xE10060
+    feat = ida.CF_USE1
+
+
+class I_cp_w_l8(Instruction_w_l8_B):
+    """CP{.B} f"""
+    name = 'cp'
+    mask = 0xFF8060
+    code = 0xE10060
+    feat = ida.CF_USE1
+
+
+class I_cp_w_wp(Instruction_w_wp_B):
+    """CP{.B} Wb, [Ws]"""
+    name = 'cp'
+    mask = 0xFF8380
+    code = 0xE10000
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+
+#######################################
+# CP0                              {{{2
+
+
+class I_cp0_f(Instruction_f_B):
+    """CP0{.B} f"""
+    name = 'cp0'
+    mask = 0xFFA000
+    code = 0xE20000
+    feat = ida.CF_USE1
+
+
+class I_cp0_wp(Instruction_wp_B):
+    """CP0{.B} [Ws]"""
+    name = 'cp0'
+    mask = 0xFFFB80
+    code = 0xE00000
+    feat = ida.CF_USE1
+
+
+#######################################
+# CPB                              {{{2
+
+
+class I_cpb_f(Instruction_f_B):
+    """CPB{.B} f"""
+    name = 'cpb'
+    mask = 0xFFA000
+    code = 0xE38000
+    feat = ida.CF_USE1
+
+
+class I_cpb_w_l5(Instruction_w_l5_B):
+    """CPB{.B} Wb, #lit5"""
+    name = 'cpb'
+    mask = 0xFF83E0
+    code = 0xE18060
+    feat = ida.CF_USE1
+
+
+class I_cpb_w_l8(Instruction_w_l8_B):
+    """CPB{.B} Wb, #lit8"""
+    name = 'cpb'
+    mask = 0xFF8060
+    code = 0xE18060
+    feat = ida.CF_USE1
+
+
+class I_cpb_w_wp(Instruction_w_wp_B):
+    """CPB{.B} Wb, [Ws]"""
+    name = 'cpb'
+    mask = 0xFF8380
+    code = 0xE18000
+    feat = ida.CF_USE1 | ida.CF_USE2
 
 
 #######################################
