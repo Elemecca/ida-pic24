@@ -2400,6 +2400,126 @@ class I_subr_w_wp_wp(Instruction_w_wp_wp_B):
 
 
 #######################################
+# SWAP                             {{{2
+
+
+class I_swap(Instruction):
+    """SWAP{.B} Wn"""
+    name = 'swap'
+    mask = 0xFFF800
+    code = 0xFB0000
+    feat = ida.CF_USE1 | ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+#######################################
+# TBLRD                            {{{2
+
+
+class I_tblrdh(Instruction_wp_wp_B):
+    """TBLRDH{.B} [Ws], [Wd]"""
+    name = 'tlbrdh'
+    mask = 0xFF8000
+    code = 0xDA8000
+
+
+class I_tblrdl(Instruction_wp_wp_B):
+    """TBLRDL{.B} [Ws], [Wd]"""
+    name = 'tlbrdl'
+    mask = 0xFF8000
+    code = 0xDA0000
+
+
+#######################################
+# TBLWT                            {{{2
+
+
+class I_tblwth(Instruction_wp_wp_B):
+    """TBLWTH{.B} [Ws], [Wd]"""
+    name = 'tlbwth'
+    mask = 0xFF8000
+    code = 0xDD8000
+
+
+class I_tblwtl(Instruction_wp_wp_B):
+    """TBLWTL{.B} [Ws], [Wd]"""
+    name = 'tlbwtl'
+    mask = 0xFF8000
+    code = 0xDD0000
+
+
+#######################################
+# ULNK                             {{{2
+
+
+class I_ulnk(Instruction):
+    """ULNK"""
+    name = 'ulnk'
+    mask = 0xFFFFFF
+    code = 0xFA8000
+
+
+#######################################
+# XOR                              {{{2
+
+
+class I_xor_f_wr(Instruction_f_wr_B):
+    """XOR{.B} f, WREG"""
+    name = 'xor'
+    mask = 0xFFA000
+    code = 0xB68000
+
+
+class I_xor_f(Instruction_f_B):
+    """XOR{.B} f"""
+    name = 'xor'
+    mask = 0xFFA000
+    code = 0xB68000
+
+
+class I_xor_l10_w(Instruction_l10_w_B):
+    """XOR{.B} #lit10, Wn"""
+    name = 'xor'
+    mask = 0xFF8000
+    code = 0xB28000
+
+
+class I_xor_w_l5_wp(Instruction_w_l5_wp_B):
+    """XOR{.B} Wb, #lit5, [Wd]"""
+    name = 'xor'
+    mask = 0xF80060
+    code = 0x680060
+
+
+class I_xor_w_wp_wp(Instruction_w_wp_wp_B):
+    """XOR{.B} Wb, [Ws], [Wd]"""
+    name = 'Xor'
+    mask = 0xF80000
+    code = 0x680000
+
+
+#######################################
+# ZE                               {{{2
+
+
+class I_ze(Instruction):
+    """ZE [Ws], Wnd"""
+    name = 'ze'
+    mask = 0xFFF800
+    code = 0xFB8000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
+        insn.ops[0].dtype = ida.dt_byte
+        set_op_reg(insn, 1, ireg.W0 + mask_d_7(code))
+
+
+#######################################
 # Decode Map                       {{{2
 
 
