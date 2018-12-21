@@ -220,12 +220,20 @@ def mask_f15_4(code):
     return (code & 0x07FFF0) >> 3
 
 
+def mask_f16_0(code):
+    return code & 0x00FFFF
+
+
 def mask_g_4(code):
     return (code & 0x000070) >> 4
 
 
 def mask_h_11(code):
     return (code & 0x003800) >> 11
+
+
+def mask_k1_0(code):
+    return code & 0x000001
 
 
 def mask_k4_0(code):
@@ -1796,6 +1804,38 @@ class I_muluu_w_wp_w(Instruction_w_wp_w):
 
 
 #######################################
+# NEG                              {{{2
+
+
+class I_neg_f_wr(Instruction_f_wr_B):
+    """NEG{.B} f, WREG"""
+    name = 'neg'
+    mask = 0xFFA000
+    code = 0xEE0000
+
+
+class I_neg_f(Instruction_f_B):
+    """NEG{.B} f"""
+    name = 'neg'
+    mask = 0xFFA000
+    code = 0xEE2000
+
+
+class I_neg_wp_wp(Instruction):
+    """NEG{.B} [Ws], [Wd]"""
+    name = 'neg'
+    mask = 0xFF8000
+    code = 0xEA0000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(insn), mask_p_4(code), 0)
+        set_op_phrase(insn, 1, mask_d_7(insn), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+#######################################
 # NOP                              {{{2
 
 
@@ -1811,6 +1851,121 @@ class I_nopr(Instruction):
     name = 'nopr'
     mask = 0xFF0000
     code = 0xFF0000
+
+
+#######################################
+# POP                              {{{2
+
+
+class I_pop_f(Instruction):
+    """POP f"""
+    name = 'pop'
+    mask = 0xFF0000
+    code = 0xF90000
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_mem(insn, 0, mask_f16_0(code))
+
+
+class I_pop_wp(Instruction):
+    """POP [Wd]"""
+    name = 'pop'
+    mask = 0xF8407F
+    code = 0x78004F
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_phrase(
+            insn, 0,
+            mask_d_7(code),
+            mask_h_11(code),
+            mask_w_15(code)
+        )
+
+
+class I_popd_w(Instruction):
+    """POP.D Wnd"""
+    name = 'pop.d'
+    mask = 0xFFF87F
+    code = 0xBE004F
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_d_7(code))
+        insn.op[0].dtype = ida.dt_dword
+
+
+class I_pops(Instruction):
+    """POP.S"""
+    name = 'pop.s'
+    mask = 0xFFFFFF
+    code = 0xFE8000
+
+
+#######################################
+# PUSH                             {{{2
+
+
+class I_push_f(Instruction):
+    """PUSH f"""
+    name = 'push'
+    mask = 0xFF0000
+    code = 0xF80000
+    feat = ida.CF_USE1
+
+    def _decode(self, insn, code):
+        set_op_mem(insn, 0, mask_f16_0(code))
+
+
+class I_push_wp(Instruction):
+    """PUSH [Ws]"""
+    name = 'push'
+    mask = 0xF87F80
+    code = 0x781F80
+    feat = ida.CF_USE1
+
+    def _decode(self, insn, code):
+        set_op_phrase(
+            insn, 0,
+            mask_s_0(code),
+            mask_g_4(code),
+            mask_w_15(code)
+        )
+
+
+class I_pushd_w(Instruction):
+    """PUSH.D Wns"""
+    name = 'pop.d'
+    mask = 0xFFFFF0
+    code = 0xBE9F80
+    feat = ida.CF_USE1
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+        insn.op[0].dtype = ida.dt_dword
+
+
+class I_pushs(Instruction):
+    """PUSH.S"""
+    name = 'push.s'
+    mask = 0xFFFFFF
+    code = 0xFE9000
+
+
+#######################################
+# PWRSAV                           {{{2
+
+
+class I_pwrsav(Instruction):
+    """PWRSAV #lit1"""
+    name = 'pwrsav'
+    mask = 0xFFFFFE
+    code = 0xFE4000
+    feat = ida.CF_USE1
+
+    def _decode(self, insn, code):
+        set_op_imm(insn, 0, mask_k1_0(code))
 
 
 #######################################
