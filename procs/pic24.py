@@ -18,7 +18,7 @@
 # If not, see <https://www.gnu.org/licenses/>.
 
 
-import idaapi as ida
+import idaapi
 
 
 ###############################################################################
@@ -31,11 +31,11 @@ asm_xc16 = {
 
     'flag': (
         0
-        | ida.ASH_HEXF3  # hex 'numbers':     0x000E
-        | ida.ASD_DECF0  # decimal 'numbers': 14
-        | ida.ASO_OCTF1  # octal 'numbers':   016
-        | ida.ASB_BINF5  # binary 'numbers':  0b0110
-        | ida.AS_ASCIIC  # strings accept C-style escapes
+        | idaapi.ASH_HEXF3  # hex 'numbers':     0x000E
+        | idaapi.ASD_DECF0  # decimal 'numbers': 14
+        | idaapi.ASO_OCTF1  # octal 'numbers':   016
+        | idaapi.ASB_BINF5  # binary 'numbers':  0b0110
+        | idaapi.AS_ASCIIC  # strings accept C-style escapes
     ),
 
     'origin': '.org',
@@ -167,12 +167,12 @@ icond = Enum(conditions)
 
 
 def insn_get_next_word(insn):
-    res = ida.get_wide_word(insn.ea + insn.size)
+    res = idaapi.get_wide_word(insn.ea + insn.size)
     insn.size += 2
     return res
 
 
-o_cond = ida.o_idpspec0
+o_cond = idaapi.o_idpspec0
 
 OPS1_WREG = 0x1
 
@@ -329,49 +329,49 @@ def mask_W_6(code):
 
 
 def set_op_imm(insn, op, value):
-    insn.ops[op].type = ida.o_imm
+    insn.ops[op].type = idaapi.o_imm
     insn.ops[op].value = value
-    insn.ops[op].dtyp = ida.dt_word
+    insn.ops[op].dtyp = idaapi.dt_word
 
 
 def set_op_reg(insn, op, reg):
-    insn.ops[op].type = ida.o_reg
+    insn.ops[op].type = idaapi.o_reg
     insn.ops[op].reg = reg
-    insn.ops[op].dtyp = ida.dt_word
+    insn.ops[op].dtyp = idaapi.dt_word
 
 
 def set_op_wreg(insn, op):
-    insn.ops[op].type = ida.o_reg
+    insn.ops[op].type = idaapi.o_reg
     insn.ops[op].reg = ireg.W0
     insn.ops[op].specflag1 = OPS1_WREG
-    insn.ops[op].dtyp = ida.dt_word
+    insn.ops[op].dtyp = idaapi.dt_word
 
 
 def set_op_mem(insn, op, addr):
-    insn.ops[op].type = ida.o_mem
-    insn.ops[op].addr = ida.map_data_ea(insn, addr)
-    insn.ops[op].dtyp = ida.dt_word
+    insn.ops[op].type = idaapi.o_mem
+    insn.ops[op].addr = idaapi.map_data_ea(insn, addr)
+    insn.ops[op].dtyp = idaapi.dt_word
 
 
 def set_op_displ(insn, op, reg, displ):
-    insn.ops[op].type = ida.o_displ
+    insn.ops[op].type = idaapi.o_displ
     insn.ops[op].reg = ireg.W0 + reg
     insn.ops[op].addr = displ
-    insn.ops[op].dtyp = ida.dt_word
+    insn.ops[op].dtyp = idaapi.dt_word
 
 
 def set_op_phrase(insn, op, reg, mode, offset_reg):
-    insn.ops[op].type = ida.o_phrase
+    insn.ops[op].type = idaapi.o_phrase
     insn.ops[op].phrase = reg
     insn.ops[op].specflag3 = offset_reg
     insn.ops[op].specflag4 = mode
-    insn.ops[op].dtyp = ida.dt_word
+    insn.ops[op].dtyp = idaapi.dt_word
 
 
 def set_op_near(insn, op, addr):
-    insn.ops[op].type = ida.o_near
+    insn.ops[op].type = idaapi.o_near
     insn.ops[op].addr = addr
-    ida.map_code_ea(insn, insn.ops[op])
+    idaapi.map_code_ea(insn, insn.ops[op])
 
 
 def set_op_cond(insn, op, cond):
@@ -385,10 +385,10 @@ def set_op_near_rel(insn, op, offset):
 
 def set_insn_byte(insn):
     for op in insn.ops:
-        if op.type == ida.o_null:
+        if op.type == idaapi.o_null:
             break
-        if op.dtyp == ida.dt_word:
-            op.dtyp = ida.dt_byte
+        if op.dtyp == idaapi.dt_word:
+            op.dtyp = idaapi.dt_byte
 
     insn.auxpref |= AUX_SZ_BYTE
 
@@ -420,7 +420,7 @@ class Instruction(object):
 
 
 class Instruction_f_wr_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_mem(insn, 0, mask_f13_0(code))
@@ -430,7 +430,7 @@ class Instruction_f_wr_B(Instruction):
 
 
 class Instruction_f_B(Instruction):
-    feat = ida.CF_CHG1
+    feat = idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_mem(insn, 0, mask_f13_0(code))
@@ -439,7 +439,7 @@ class Instruction_f_B(Instruction):
 
 
 class Instruction_wr_B(Instruction):
-    feat = ida.CF_CHG1
+    feat = idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_wreg(insn, 0)
@@ -448,7 +448,7 @@ class Instruction_wr_B(Instruction):
 
 
 class Instruction_wp_B(Instruction):
-    feat = ida.CF_CHG1
+    feat = idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_d_7(code), mask_q_11(code), 0)
@@ -457,7 +457,7 @@ class Instruction_wp_B(Instruction):
 
 
 class Instruction_l10_w_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_imm(insn, 0, mask_k10_4(code))
@@ -467,7 +467,7 @@ class Instruction_l10_w_B(Instruction):
 
 
 class Instruction_w_l5_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -477,7 +477,7 @@ class Instruction_w_l5_B(Instruction):
 
 
 class Instruction_w_l8_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -487,7 +487,7 @@ class Instruction_w_l8_B(Instruction):
 
 
 class Instruction_w_wp_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -497,7 +497,7 @@ class Instruction_w_wp_B(Instruction):
 
 
 class Instruction_w_wp_w(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2 | idaapi.CF_CHG3
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -506,7 +506,7 @@ class Instruction_w_wp_w(Instruction):
 
 
 class Instruction_w_l5_wp_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2 | idaapi.CF_CHG3
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_15(code))
@@ -517,7 +517,7 @@ class Instruction_w_l5_wp_B(Instruction):
 
 
 class Instruction_w_l5_w(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2 | idaapi.CF_CHG3
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -526,7 +526,7 @@ class Instruction_w_l5_w(Instruction):
 
 
 class Instruction_w_l4_w(Instruction):
-    feat = ida.CF_USE1 | ida.CF_CHG3
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG3
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -535,7 +535,7 @@ class Instruction_w_l4_w(Instruction):
 
 
 class Instruction_w_w_w(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2 | idaapi.CF_CHG3
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -544,7 +544,7 @@ class Instruction_w_w_w(Instruction):
 
 
 class Instruction_w_wp_wp_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2 | idaapi.CF_CHG3
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_15(code))
@@ -555,7 +555,7 @@ class Instruction_w_wp_wp_B(Instruction):
 
 
 class Instruction_wp_wp_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
@@ -565,7 +565,7 @@ class Instruction_wp_wp_B(Instruction):
 
 
 class Instruction_wpo_wpo_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_phrase(
@@ -585,7 +585,7 @@ class Instruction_wpo_wpo_B(Instruction):
 
 
 class Instruction_f_b_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_CHG1
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_mem(insn, 0, mask_f12_1(code))
@@ -595,7 +595,7 @@ class Instruction_f_b_B(Instruction):
 
 
 class Instruction_wp_b(Instruction):
-    feat = ida.CF_USE1 | ida.CF_CHG1
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
@@ -603,7 +603,7 @@ class Instruction_wp_b(Instruction):
 
 
 class Instruction_wp_b_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_CHG1
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
@@ -613,7 +613,7 @@ class Instruction_wp_b_B(Instruction):
 
 
 class Instruction_wp_w(Instruction):
-    feat = ida.CF_USE1 | ida.CF_CHG1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG1 | idaapi.CF_USE2
 
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
@@ -621,7 +621,7 @@ class Instruction_wp_w(Instruction):
 
 
 class Instruction_w_w_B(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -631,13 +631,13 @@ class Instruction_w_w_B(Instruction):
 
 
 class Instruction_w_w_W(Instruction):
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_v_7(code))
         set_op_reg(insn, 1, ireg.W0 + mask_s_0(code))
         if mask_W_6(code):
-            insn.ops[0].dtype = ida.dt_dword
+            insn.ops[0].dtype = idaapi.dt_dword
             insn.auxpref |= AUX_SZ_DWORD
 
 
@@ -685,7 +685,7 @@ class I_add_a(Instruction):
     name = 'add'
     mask = 0xFF7FFF
     code = 0xCB0000
-    feat = ida.CF_CHG1
+    feat = idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.A if mask_A_15(code) else ireg.B)
@@ -696,7 +696,7 @@ class I_add_wp_a(Instruction):
     name = 'add'
     mask = 0xFF0700
     code = 0xC90000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_phrase(
@@ -713,7 +713,7 @@ class I_add_wp_sl4_a(Instruction):
     name = 'add'
     mask = 0xFF0000
     code = 0xC90000
-    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2 | idaapi.CF_CHG3
 
     def _decode(self, insn, code):
         set_op_phrase(
@@ -830,7 +830,7 @@ class I_asr_w_l4_w(Instruction):
     name = 'asr'
     mask = 0xFF8070
     code = 0xDE8040
-    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2 | idaapi.CF_CHG3
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -843,7 +843,7 @@ class I_asr_w_w_w(Instruction):
     name = 'asr'
     mask = 0xFF8070
     code = 0xDE8000
-    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2 | idaapi.CF_CHG3
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
@@ -878,7 +878,7 @@ class I_bra_slit16(Instruction):
     name = 'bra'
     mask = 0xFF0000
     code = 0x370000
-    feat = ida.CF_USE1 | ida.CF_STOP
+    feat = idaapi.CF_USE1 | idaapi.CF_STOP
 
     def _decode(self, insn, code):
         set_op_near_rel(insn, 0, mask_slit16_0(code))
@@ -889,7 +889,7 @@ class I_bra_w(Instruction):
     name = 'bra'
     mask = 0xFFFFF0
     code = 0x016000
-    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+    feat = idaapi.CF_USE1 | idaapi.CF_STOP | idaapi.CF_JUMP
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -900,7 +900,7 @@ class I_bra_w_E(Instruction):
     name = 'bra'
     mask = 0xFFFFF0
     code = 0x010600
-    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+    feat = idaapi.CF_USE1 | idaapi.CF_STOP | idaapi.CF_JUMP
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -911,7 +911,7 @@ class I_bra_c_slit16(Instruction):
     name = 'bra'
     mask = 0xF00000
     code = 0x300000
-    feat = ida.CF_USE2
+    feat = idaapi.CF_USE2
 
     def _decode(self, insn, code):
         set_op_cond(insn, 0, icond.OV + ((code & 0x0F0000) >> 16))
@@ -923,7 +923,7 @@ class I_bra_c_slit16_DSP(Instruction):
     name = 'bra'
     mask = 0xFC0000
     code = 0x0C0000
-    feat = ida.CF_USE2
+    feat = idaapi.CF_USE2
 
     def _decode(self, insn, code):
         set_op_cond(insn, 0, icond.OA + ((code & 0x030000) >> 16))
@@ -1029,7 +1029,7 @@ class I_btst_f_b(Instruction_f_b_B):
     name = 'btst'
     mask = 0xFF0000
     code = 0xAB0000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_btstc_wp_b(Instruction_wp_b):
@@ -1037,7 +1037,7 @@ class I_btstc_wp_b(Instruction_wp_b):
     name = 'btst.c'
     mask = 0xFF0780
     code = 0xA30000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_btstz_wp_b(Instruction_wp_b):
@@ -1045,7 +1045,7 @@ class I_btstz_wp_b(Instruction_wp_b):
     name = 'btst.z'
     mask = 0xFF0780
     code = 0xA30800
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_btstc_wp_w(Instruction_wp_w):
@@ -1053,7 +1053,7 @@ class I_btstc_wp_w(Instruction_wp_w):
     name = 'btst.c'
     mask = 0xFF8780
     code = 0xA50000
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
 
 class I_btstz_wp_w(Instruction_wp_w):
@@ -1061,7 +1061,7 @@ class I_btstz_wp_w(Instruction_wp_w):
     name = 'btst.z'
     mask = 0xFF8780
     code = 0xA58000
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
 
 #######################################
@@ -1098,7 +1098,7 @@ class I_call_l23(Instruction):
     name = 'call'
     mask = 0xFF0000
     code = 0x020000
-    feat = ida.CF_USE1 | ida.CF_CALL
+    feat = idaapi.CF_USE1 | idaapi.CF_CALL
 
     def _decode(self, insn, code):
         data = insn_get_next_word(insn)
@@ -1110,7 +1110,7 @@ class I_call_w(Instruction):
     name = 'call'
     mask = 0xFFFFF0
     code = 0x010000
-    feat = ida.CF_USE1 | ida.CF_CALL | ida.CF_JUMP
+    feat = idaapi.CF_USE1 | idaapi.CF_CALL | idaapi.CF_JUMP
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -1121,7 +1121,7 @@ class I_calll_w(Instruction):
     name = 'call.l'
     mask = 0xFF87F0
     code = 0x018000
-    feat = ida.CF_USE1 | ida.CF_CALL | ida.CF_JUMP
+    feat = idaapi.CF_USE1 | idaapi.CF_CALL | idaapi.CF_JUMP
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -1202,7 +1202,7 @@ class I_cp_f(Instruction_f_B):
     name = 'cp'
     mask = 0xFFA000
     code = 0xE30000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_cp_w_l5(Instruction_w_l5_B):
@@ -1210,7 +1210,7 @@ class I_cp_w_l5(Instruction_w_l5_B):
     name = 'cp'
     mask = 0xFF83E0
     code = 0xE10060
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_cp_w_l8(Instruction_w_l8_B):
@@ -1218,7 +1218,7 @@ class I_cp_w_l8(Instruction_w_l8_B):
     name = 'cp'
     mask = 0xFF8060
     code = 0xE10060
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_cp_w_wp(Instruction_w_wp_B):
@@ -1226,7 +1226,7 @@ class I_cp_w_wp(Instruction_w_wp_B):
     name = 'cp'
     mask = 0xFF8380
     code = 0xE10000
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
 
 #######################################
@@ -1238,7 +1238,7 @@ class I_cp0_f(Instruction_f_B):
     name = 'cp0'
     mask = 0xFFA000
     code = 0xE20000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_cp0_wp(Instruction_wp_B):
@@ -1246,7 +1246,7 @@ class I_cp0_wp(Instruction_wp_B):
     name = 'cp0'
     mask = 0xFFFB80
     code = 0xE00000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 #######################################
@@ -1258,7 +1258,7 @@ class I_cpb_f(Instruction_f_B):
     name = 'cpb'
     mask = 0xFFA000
     code = 0xE38000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_cpb_w_l5(Instruction_w_l5_B):
@@ -1266,7 +1266,7 @@ class I_cpb_w_l5(Instruction_w_l5_B):
     name = 'cpb'
     mask = 0xFF83E0
     code = 0xE18060
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_cpb_w_l8(Instruction_w_l8_B):
@@ -1274,7 +1274,7 @@ class I_cpb_w_l8(Instruction_w_l8_B):
     name = 'cpb'
     mask = 0xFF8060
     code = 0xE18060
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_cpb_w_wp(Instruction_w_wp_B):
@@ -1282,7 +1282,7 @@ class I_cpb_w_wp(Instruction_w_wp_B):
     name = 'cpb'
     mask = 0xFF8380
     code = 0xE18000
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
 
 #######################################
@@ -1294,7 +1294,7 @@ class I_cpseq_w_w_B(Instruction_w_w_B):
     name = 'cpseq'
     mask = 0xFF83F0
     code = 0xE78000
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
 
 #######################################
@@ -1306,7 +1306,7 @@ class I_cpsgt_w_w_B(Instruction_w_w_B):
     name = 'cpsgt'
     mask = 0xFF83F0
     code = 0xE60000
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
 
 #######################################
@@ -1318,7 +1318,7 @@ class I_cpslt_w_w_B(Instruction_w_w_B):
     name = 'cpslt'
     mask = 0xFF83F0
     code = 0xE68000
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
 
 #######################################
@@ -1330,7 +1330,7 @@ class I_cpsne_w_w_B(Instruction_w_w_B):
     name = 'cpsne'
     mask = 0xFF83F0
     code = 0xE70000
-    feat = ida.CF_USE1 | ida.CF_USE2
+    feat = idaapi.CF_USE1 | idaapi.CF_USE2
 
 
 # DAW.B                            {{{2
@@ -1423,7 +1423,7 @@ class I_exch(Instruction):
     name = 'exch'
     mask = 0xFFF870
     code = 0xFD0000
-    feat = ida.CF_CHG1 | ida.CF_CHG2
+    feat = idaapi.CF_CHG1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -1439,7 +1439,7 @@ class I_ff1l(Instruction):
     name = 'ff1r'
     mask = 0xFFF800
     code = 0xCF8000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code))
@@ -1455,7 +1455,7 @@ class I_ff1R(Instruction):
     name = 'ff1r'
     mask = 0xFFF800
     code = 0xCF0000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code))
@@ -1471,7 +1471,7 @@ class I_goto_l23(Instruction):
     name = 'goto'
     mask = 0xFF0000
     code = 0x040000
-    feat = ida.CF_USE1 | ida.CF_STOP
+    feat = idaapi.CF_USE1 | idaapi.CF_STOP
 
     def _decode(self, insn, code):
         data = insn_get_next_word(insn)
@@ -1483,7 +1483,7 @@ class I_goto_w(Instruction):
     name = 'goto'
     mask = 0xFFFFF0
     code = 0x014000
-    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+    feat = idaapi.CF_USE1 | idaapi.CF_STOP | idaapi.CF_JUMP
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -1494,7 +1494,7 @@ class I_goto_w_E(Instruction):
     name = 'goto'
     mask = 0xFFFFF0
     code = 0x010400
-    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+    feat = idaapi.CF_USE1 | idaapi.CF_STOP | idaapi.CF_JUMP
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -1505,7 +1505,7 @@ class I_gotol_w(Instruction):
     name = 'goto.l'
     mask = 0xFF87F0
     code = 0x018400
-    feat = ida.CF_USE1 | ida.CF_STOP | ida.CF_JUMP
+    feat = idaapi.CF_USE1 | idaapi.CF_STOP | idaapi.CF_JUMP
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -1595,7 +1595,7 @@ class I_lnk(Instruction):
     name = 'lnk'
     mask = 0xFFC001
     code = 0xFA0000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
     def _decode(self, insn, code):
         set_op_imm(insn, 0, mask_k14_0(code))
@@ -1663,7 +1663,7 @@ class I_mov_wr_f(Instruction):
     name = 'mov'
     mask = 0xFF8000
     code = 0xB78000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_wreg(insn, 0)
@@ -1677,7 +1677,7 @@ class I_mov_f_w(Instruction):
     name = 'mov'
     mask = 0xF80000
     code = 0x800000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_mem(insn, 0, mask_f15_4(code))
@@ -1689,7 +1689,7 @@ class I_mov_w_f(Instruction):
     name = 'mov'
     mask = 0xF80000
     code = 0x880000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -1701,7 +1701,7 @@ class I_mov_l8_w(Instruction):
     name = 'mov'
     mask = 0xFFF000
     code = 0xB3C000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_imm(insn, 0, mask_k8_4(code))
@@ -1714,7 +1714,7 @@ class I_mov_l16_w(Instruction):
     name = 'mov'
     mask = 0xF00000
     code = 0x200000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_imm(insn, 0, mask_k16_4(code))
@@ -1726,7 +1726,7 @@ class I_mov_wso_w(Instruction):
     name = 'mov'
     mask = 0xF80000
     code = 0x900000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_displ(insn, 0, mask_s_0(code), mask_slit10_4(code))
@@ -1741,7 +1741,7 @@ class I_mov_w_wso(Instruction):
     name = 'mov'
     mask = 0xF80000
     code = 0x980000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -1767,7 +1767,7 @@ class I_mul_f(Instruction_f_B):
     name = 'mul'
     mask = 0xFFB000
     code = 0xBC0000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
 
 class I_mulss_w_wp_w(Instruction_w_wp_w):
@@ -1864,7 +1864,7 @@ class I_pop_f(Instruction):
     name = 'pop'
     mask = 0xFF0000
     code = 0xF90000
-    feat = ida.CF_CHG1
+    feat = idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_mem(insn, 0, mask_f16_0(code))
@@ -1875,7 +1875,7 @@ class I_pop_wp(Instruction):
     name = 'pop'
     mask = 0xF8407F
     code = 0x78004F
-    feat = ida.CF_CHG1
+    feat = idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_phrase(
@@ -1891,11 +1891,11 @@ class I_popd_w(Instruction):
     name = 'pop.d'
     mask = 0xFFF87F
     code = 0xBE004F
-    feat = ida.CF_CHG1
+    feat = idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_d_7(code))
-        insn.op[0].dtype = ida.dt_dword
+        insn.op[0].dtype = idaapi.dt_dword
 
 
 class I_pops(Instruction):
@@ -1914,7 +1914,7 @@ class I_push_f(Instruction):
     name = 'push'
     mask = 0xFF0000
     code = 0xF80000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
     def _decode(self, insn, code):
         set_op_mem(insn, 0, mask_f16_0(code))
@@ -1925,7 +1925,7 @@ class I_push_wp(Instruction):
     name = 'push'
     mask = 0xF87F80
     code = 0x781F80
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
     def _decode(self, insn, code):
         set_op_phrase(
@@ -1941,11 +1941,11 @@ class I_pushd_w(Instruction):
     name = 'pop.d'
     mask = 0xFFFFF0
     code = 0xBE9F80
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
-        insn.op[0].dtype = ida.dt_dword
+        insn.op[0].dtype = idaapi.dt_dword
 
 
 class I_pushs(Instruction):
@@ -1964,7 +1964,7 @@ class I_pwrsav(Instruction):
     name = 'pwrsav'
     mask = 0xFFFFFE
     code = 0xFE4000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
     def _decode(self, insn, code):
         set_op_imm(insn, 0, mask_k1_0(code))
@@ -1979,7 +1979,7 @@ class I_rcall_slit16(Instruction):
     name = 'rcall'
     mask = 0xFF0000
     code = 0x070000
-    feat = ida.CF_USE1 | ida.CF_CALL
+    feat = idaapi.CF_USE1 | idaapi.CF_CALL
 
     def _decode(self, insn, code):
         set_op_near_rel(insn, 0, mask_slit16_0(code))
@@ -1990,7 +1990,7 @@ class I_rcall_w(Instruction):
     name = 'rcall'
     mask = 0xFFFFF0
     code = 0x014000
-    feat = ida.CF_USE1 | ida.CF_CALL | ida.CF_JUMP
+    feat = idaapi.CF_USE1 | idaapi.CF_CALL | idaapi.CF_JUMP
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -2001,7 +2001,7 @@ class I_rcall_w_E(Instruction):
     name = 'rcall'
     mask = 0xFFFFF0
     code = 0x010400
-    feat = ida.CF_USE1 | ida.CF_CALL | ida.CF_JUMP
+    feat = idaapi.CF_USE1 | idaapi.CF_CALL | idaapi.CF_JUMP
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -2016,7 +2016,7 @@ class I_repeat_lit14(Instruction):
     name = 'repeat'
     mask = 0xFFC000
     code = 0x090000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
     def _decode(self, insn, code):
         set_op_imm(insn, 0, mask_k14_0(code))
@@ -2027,7 +2027,7 @@ class I_repeat_w(Instruction):
     name = 'repeat'
     mask = 0xFFFFF0
     code = 0x098000
-    feat = ida.CF_USE1
+    feat = idaapi.CF_USE1
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, mask_s_0(code))
@@ -2186,11 +2186,11 @@ class I_se(Instruction):
     name = 'se'
     mask = 0xFFF800
     code = 0xFB0000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
-        insn.ops[0].dtype = ida.dt_byte
+        insn.ops[0].dtype = idaapi.dt_byte
         set_op_reg(insn, 1, ireg.W0 + mask_d_7(code))
 
 
@@ -2302,7 +2302,7 @@ class I_sub_a(Instruction):
     name = 'sub'
     mask = 0xFF7FFF
     code = 0xCB3000
-    feat = ida.CF_CHG1
+    feat = idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.A if mask_A_15(code) else ireg.B)
@@ -2408,7 +2408,7 @@ class I_swap(Instruction):
     name = 'swap'
     mask = 0xFFF800
     code = 0xFB0000
-    feat = ida.CF_USE1 | ida.CF_CHG1
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG1
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
@@ -2511,11 +2511,11 @@ class I_ze(Instruction):
     name = 'ze'
     mask = 0xFFF800
     code = 0xFB8000
-    feat = ida.CF_USE1 | ida.CF_CHG2
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
-        insn.ops[0].dtype = ida.dt_byte
+        insn.ops[0].dtype = idaapi.dt_byte
         set_op_reg(insn, 1, ireg.W0 + mask_d_7(code))
 
 
@@ -2580,14 +2580,14 @@ for idx, itype in enumerate(instructions, 1):
 ###############################################################################
 
 
-class PIC24Processor(ida.processor_t):
+class PIC24Processor(idaapi.processor_t):
     id = 0x8000 + 24
 
     flag = (
-        ida.PR_USE32   # use 32-bit (as opposed to 16-bit) addresses
-        | ida.PRN_HEX  # show numbers in hex by default
-        | ida.PR_NO_SEGMOVE  # we don't support move_segm()
-        | ida.PR_SEGTRANS
+        idaapi.PR_USE32   # use 32-bit (as opposed to 16-bit) addresses
+        | idaapi.PRN_HEX  # show numbers in hex by default
+        | idaapi.PR_NO_SEGMOVE  # we don't support move_segm()
+        | idaapi.PR_SEGTRANS
     )
 
     # number of bits in a byte
@@ -2619,34 +2619,34 @@ class PIC24Processor(ida.processor_t):
 
     def _emu_operand(self, insn, op, is_write):
         feat = insn.get_canon_feature()
-        dref_flag = ida.dr_W if is_write else ida.dr_R
+        dref_flag = idaapi.dr_W if is_write else idaapi.dr_R
 
-        if op.type == ida.o_mem:
+        if op.type == idaapi.o_mem:
             # create data xrefs
             insn.create_op_data(op.addr, op)
             insn.add_dref(op.addr, op.offb, dref_flag)
 
-        elif op.type == ida.o_near:
+        elif op.type == idaapi.o_near:
             # create code xrefs
             insn.add_cref(
                 op.addr, op.offb,
-                (ida.fl_CN if (feat & ida.CF_CALL) else ida.fl_JN)
+                (idaapi.fl_CN if (feat & idaapi.CF_CALL) else idaapi.fl_JN)
             )
 
     def notify_emu(self, insn):
         feat = insn.get_canon_feature()
 
-        for idx in range(0, ida.UA_MAXOP):
+        for idx in range(0, idaapi.UA_MAXOP):
             op = insn.ops[idx]
-            if op.type == ida.o_void:
+            if op.type == idaapi.o_void:
                 break
-            if (feat & getattr(ida, 'CF_USE' + str(idx + 1))) != 0:
+            if (feat & getattr(idaapi, 'CF_USE' + str(idx + 1))) != 0:
                 self._emu_operand(insn, op, False)
-            if (feat & getattr(ida, 'CF_CHG' + str(idx + 1))) != 0:
+            if (feat & getattr(idaapi, 'CF_CHG' + str(idx + 1))) != 0:
                 self._emu_operand(insn, op, True)
 
-        if not feat & ida.CF_STOP:
-            ida.add_cref(insn.ea, insn.ea + insn.size, ida.fl_F)
+        if not feat & idaapi.CF_STOP:
+            idaapi.add_cref(insn.ea, insn.ea + insn.size, idaapi.fl_F)
 
         return 1
 
@@ -2662,28 +2662,28 @@ class PIC24Processor(ida.processor_t):
         return 1
 
     def notify_out_operand(self, ctx, op):
-        if op.type == ida.o_reg:
+        if op.type == idaapi.o_reg:
             ctx.out_register(self.reg_names[op.reg])
 
-        elif op.type == ida.o_imm:
+        elif op.type == idaapi.o_imm:
             ctx.out_symbol('#')
-            ctx.out_value(op, ida.OOFW_IMM)
+            ctx.out_value(op, idaapi.OOFW_IMM)
 
-        elif op.type in [ida.o_mem, ida.o_near]:
+        elif op.type in [idaapi.o_mem, idaapi.o_near]:
             if not ctx.out_name_expr(op, op.addr):
-                ctx.out_tagon(ida.COLOR_ERROR)
-                ctx.out_value(op, ida.OOF_ADDR)
-                ctx.out_tagoff(ida.COLOR_ERROR)
-                ida.remember_problem(ida.PR_NONAME, ctx.insn.ea)
+                ctx.out_tagon(idaapi.COLOR_ERROR)
+                ctx.out_value(op, idaapi.OOF_ADDR)
+                ctx.out_tagoff(idaapi.COLOR_ERROR)
+                idaapi.remember_problem(idaapi.PR_NONAME, ctx.insn.ea)
 
-        elif op.type == ida.o_displ:
+        elif op.type == idaapi.o_displ:
             ctx.out_symbol('[')
             ctx.out_register(self.reg_names[op.reg])
             ctx.out_symbol('+')
-            ctx.out_value(op, ida.OOF_ADDR | ida.OOF_SIGNED)
+            ctx.out_value(op, idaapi.OOF_ADDR | idaapi.OOF_SIGNED)
             ctx.out_symbol(']')
 
-        elif op.type == ida.o_phrase:
+        elif op.type == idaapi.o_phrase:
             mode = op.specflag4
             if mode != 0:
                 ctx.out_symbol('[')
@@ -2718,11 +2718,11 @@ class PIC24Processor(ida.processor_t):
     def notify_out_insn(self, ctx):
         ctx.out_mnemonic()
 
-        if ctx.insn.ops[0].type != ida.o_void:
+        if ctx.insn.ops[0].type != idaapi.o_void:
             ctx.out_one_operand(0)
 
-        for idx in range(1, ida.UA_MAXOP):
-            if ctx.insn.ops[idx].type == ida.o_void:
+        for idx in range(1, idaapi.UA_MAXOP):
+            if ctx.insn.ops[idx].type == idaapi.o_void:
                 break
             ctx.out_symbol(',')
             ctx.out_char(' ')
