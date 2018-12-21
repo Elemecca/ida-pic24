@@ -540,6 +540,16 @@ class Instruction_wp_wp_B(Instruction):
     feat = ida.CF_USE1 | ida.CF_CHG2
 
     def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
+        set_op_phrase(insn, 1, mask_d_7(code), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class Instruction_wpo_wpo_B(Instruction):
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
         set_op_phrase(
             insn, 0,
             mask_s_0(code),
@@ -1591,18 +1601,11 @@ class I_lsr_f(Instruction_f_B):
     code = 0xD52000
 
 
-class I_lsr_wp_wp(Instruction):
+class I_lsr_wp_wp(Instruction_wp_wp_B):
     """LSR{.B} [Ws], [Wd]"""
     name = 'lsr'
     mask = 0xFF8000
     code = 0xD10000
-    feat = ida.CF_USE1 | ida.CF_CHG2
-
-    def _decode(self, insn, code):
-        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
-        set_op_phrase(insn, 1, mask_d_7(code), mask_q_11(code), 0)
-        if mask_B_14(code):
-            set_insn_byte(insn)
 
 
 class I_lsr_w_l4_w(Instruction):
@@ -1742,7 +1745,7 @@ class I_mov_w_wso(Instruction):
             insn.Op2.addr //= 2
 
 
-class I_mov_wp_wp(Instruction_wp_wp_B):
+class I_mov_wp_wp(Instruction_wpo_wpo_B):
     """MOV{.B} Ws, Wd"""
     name = 'mov'
     mask = 0xF80000
@@ -1821,18 +1824,11 @@ class I_neg_f(Instruction_f_B):
     code = 0xEE2000
 
 
-class I_neg_wp_wp(Instruction):
+class I_neg_wp_wp(Instruction_wp_wp_B):
     """NEG{.B} [Ws], [Wd]"""
     name = 'neg'
     mask = 0xFF8000
     code = 0xEA0000
-    feat = ida.CF_USE1 | ida.CF_CHG2
-
-    def _decode(self, insn, code):
-        set_op_phrase(insn, 0, mask_s_0(insn), mask_p_4(code), 0)
-        set_op_phrase(insn, 1, mask_d_7(insn), mask_q_11(code), 0)
-        if mask_B_14(code):
-            set_insn_byte(insn)
 
 
 #######################################
@@ -2003,6 +1999,176 @@ class I_rcall_w_E(Instruction):
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+#######################################
+# REPEAT                           {{{2
+
+
+class I_repeat_lit14(Instruction):
+    """REPEAT #lit14"""
+    name = 'repeat'
+    mask = 0xFFC000
+    code = 0x090000
+    feat = ida.CF_USE1
+
+    def _decode(self, insn, code):
+        set_op_imm(insn, 0, mask_k14_0(code))
+
+
+class I_repeat_w(Instruction):
+    """REPEAT Wn"""
+    name = 'repeat'
+    mask = 0xFFFFF0
+    code = 0x098000
+    feat = ida.CF_USE1
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, mask_s_0(code))
+
+
+#######################################
+# RESET                            {{{2
+
+
+class I_reset(Instruction):
+    """RESET"""
+    name = 'reset'
+    mask = 0xFFFFFF
+    code = 0xFE0000
+
+
+#######################################
+# RETFIE                           {{{2
+
+
+class I_retfie(Instruction):
+    """RETFIE"""
+    name = 'retfie'
+    mask = 0xFFFFFF
+    code = 0x064000
+
+
+#######################################
+# RETLW                            {{{2
+
+
+class I_retlw(Instruction_l10_w_B):
+    """RETLW"""
+    name = 'retlw'
+    mask = 0xFF8000
+    code = 0x050000
+
+
+#######################################
+# RETURN                           {{{2
+
+
+class I_return(Instruction):
+    """RETURN"""
+    name = 'return'
+    mask = 0xFFFFFF
+    code = 0x060000
+
+
+#######################################
+# RLC                              {{{2
+
+
+class I_rlc_f_wr(Instruction_f_wr_B):
+    """RLC{.B} f, WREG"""
+    name = 'rlc'
+    mask = 0xFFA000
+    code = 0xD68000
+
+
+class I_rlc_f(Instruction_f_B):
+    """RLC{.B} f"""
+    name = 'rlc'
+    mask = 0xFFA000
+    code = 0xD6A000
+
+
+class I_rlc_wp_wp(Instruction_wp_wp_B):
+    """RLC{.B} [Ws], [Wd]"""
+    name = 'rlc'
+    mask = 0xFF8000
+    code = 0xD28000
+
+
+#######################################
+# RLNC                             {{{2
+
+
+class I_rlnc_f_wr(Instruction_f_wr_B):
+    """RLNC{.B} f, WREG"""
+    name = 'rlnc'
+    mask = 0xFFA000
+    code = 0xD60000
+
+
+class I_rlnc_f(Instruction_f_B):
+    """RLNC{.B} f"""
+    name = 'rlnc'
+    mask = 0xFFA000
+    code = 0xD62000
+
+
+class I_rlnc_wp_wp(Instruction_wp_wp_B):
+    """RLNC{.B} [Ws], [Wd]"""
+    name = 'rlnc'
+    mask = 0xFF8000
+    code = 0xD20000
+
+
+#######################################
+# RRC                              {{{2
+
+
+class I_rrc_f_wr(Instruction_f_wr_B):
+    """RRC{.B} f, WREG"""
+    name = 'rrc'
+    mask = 0xFFA000
+    code = 0xD78000
+
+
+class I_rrc_f(Instruction_f_B):
+    """RRC{.B} f"""
+    name = 'rrc'
+    mask = 0xFFA000
+    code = 0xD7A000
+
+
+class I_rrc_wp_wp(Instruction_wp_wp_B):
+    """RRC{.B} [Ws], [Wd]"""
+    name = 'rrc'
+    mask = 0xFF8000
+    code = 0xD38000
+
+
+#######################################
+# RRNC                             {{{2
+
+
+class I_rrnc_f_wr(Instruction_f_wr_B):
+    """RRNC{.B} f, WREG"""
+    name = 'rrnc'
+    mask = 0xFFA000
+    code = 0xD70000
+
+
+class I_rrnc_f(Instruction_f_B):
+    """RRNC{.B} f"""
+    name = 'rrnc'
+    mask = 0xFFA000
+    code = 0xD72000
+
+
+class I_rrnc_wp_wp(Instruction_wp_wp_B):
+    """RRNC{.B} [Ws], [Wd]"""
+    name = 'rrnc'
+    mask = 0xFF8000
+    code = 0xD30000
 
 
 #######################################
