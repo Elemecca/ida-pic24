@@ -1,3 +1,5 @@
+# vim:ft=python:sts=4:sw=4:et:fdm=marker:
+#
 # Copyright 2018 Sam Hanes.
 # This file is part of IDA-PIC24.
 #
@@ -172,10 +174,10 @@ def insn_get_next_word(insn):
 
 o_cond = ida.o_idpspec0
 
-IP_DOTB = 0x01
 OPS1_WREG = 0x1
 
 AUX_SZ_BYTE = 0x01
+AUX_SZ_DWORD = 0x02
 
 
 def mask_A_15(code):
@@ -250,6 +252,10 @@ def mask_k16_4(code):
     return (code & 0x0FFFF0) >> 4
 
 
+def mask_lit14(code):
+    return code & 0x003FFF
+
+
 def mask_lit23(code, data):
     return (code & 0x00FFFE) | ((data & 0x0000EF) << 16)
 
@@ -290,12 +296,24 @@ def mask_slit16_0(code):
     )
 
 
+def mask_v_7(code):
+    return (code & 0x000780) >> 7
+
+
+def mask_w_0(code):
+    return code & 0x00000F
+
+
 def mask_w_11(code):
     return (code & 0x007800) >> 11
 
 
 def mask_w_15(code):
     return (code & 0x078000) >> 15
+
+
+def mask_W_6(code):
+    return (code & 0x000040) != 0
 
 
 def set_op_imm(insn, op, value):
@@ -542,6 +560,27 @@ class Instruction_wp_w(Instruction):
     def _decode(self, insn, code):
         set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
         set_op_reg(insn, 1, ireg.W0 + mask_w_11(code))
+
+
+class Instruction_w_w_B(Instruction):
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_w_0(code))
+        if mask_B_10(code):
+            set_insn_byte(insn)
+
+
+class Instruction_w_w_W(Instruction):
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_v_7(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_s_0(code))
+        if mask_W_6(code):
+            insn.ops[0].dtype = ida.dt_dword
+            insn.auxpref |= AUX_SZ_DWORD
 
 
 #######################################
@@ -1189,6 +1228,182 @@ class I_cpb_w_wp(Instruction_w_wp_B):
 
 
 #######################################
+# CPSEQ                            {{{2
+
+
+class I_cpseq_w_w_B(Instruction_w_w_B):
+    """CPSEQ{.B} Wb, Wn"""
+    name = 'cpseq'
+    mask = 0xFF83F0
+    code = 0xE78000
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+
+#######################################
+# CPSGT                            {{{2
+
+
+class I_cpsgt_w_w_B(Instruction_w_w_B):
+    """CPSGT{.B} Wb, Wn"""
+    name = 'cpsgt'
+    mask = 0xFF83F0
+    code = 0xE60000
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+
+#######################################
+# CPSLT                            {{{2
+
+
+class I_cpslt_w_w_B(Instruction_w_w_B):
+    """CPSLT{.B} Wb, Wn"""
+    name = 'cpslt'
+    mask = 0xFF83F0
+    code = 0xE68000
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+
+#######################################
+# CPSNE                            {{{2
+
+
+class I_cpsne_w_w_B(Instruction_w_w_B):
+    """CPSNE{.B} Wb, Wn"""
+    name = 'cpsne'
+    mask = 0xFF83F0
+    code = 0xE70000
+    feat = ida.CF_USE1 | ida.CF_USE2
+
+
+# DAW.B                            {{{2
+
+
+class I_dawb(Instruction):
+    """DAW.B Wn"""
+    name = 'daw'
+    mask = 0xFFFFF0
+    code = 0xFD4000
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_0(code))
+        set_insn_byte(insn)
+
+
+# DEC                              {{{2
+
+
+class I_dec_f_wr(Instruction_f_wr_B):
+    """DEC{.B} f, WREG"""
+    name = 'dec'
+    mask = 0xFF8000
+    code = 0xED0000
+
+
+class I_dec_wp_wp(Instruction_wp_wp_B):
+    """DEC{.B} [Ws], [Wd]"""
+    name = 'dec'
+    mask = 0xFF8000
+    code = 0xE90000
+
+
+# DEC2                             {{{2
+
+
+class I_dec2_f_wr(Instruction_f_wr_B):
+    """DEC2{.B} f, WREG"""
+    name = 'dec2'
+    mask = 0xFF8000
+    code = 0xED8000
+
+
+class I_dec2_wp_wp(Instruction_wp_wp_B):
+    """DEC2{.B} [Ws], [Wd]"""
+    name = 'dec2'
+    mask = 0xFF8000
+    code = 0xE98000
+
+
+#######################################
+# DISI                             {{{2
+
+
+class I_disi_l14(Instruction):
+    """DISI #lit14"""
+    name = 'disi'
+    mask = 0xFF8000
+    code = 0xED8000
+
+    def _decode(self, insn, code):
+        set_op_imm(insn, 0, mask_lit14(code))
+
+
+#######################################
+# DIV                              {{{2
+
+
+class I_divs(Instruction_w_w_W):
+    """DIV.S{D} Wm, Wn"""
+    name = 'div.s'
+    mask = 0xFF8030
+    code = 0xD80000
+
+
+class I_divu(Instruction_w_w_W):
+    """DIV.U{D} Wm, Wn"""
+    name = 'div.u'
+    mask = 0xFF8030
+    code = 0xD88000
+
+
+#######################################
+# EXCH                             {{{2
+
+
+class I_exch(Instruction):
+    """EXCH Wns, Wnd"""
+    name = 'exch'
+    mask = 0xFFF870
+    code = 0xFD0000
+    feat = ida.CF_CHG1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+        set_op_reg(insn, 0, ireg.W0 + mask_d_7(code))
+
+
+#######################################
+# FF1L                             {{{2
+
+
+class I_ff1l(Instruction):
+    """FF1L [Ws], Wnd"""
+    name = 'ff1r'
+    mask = 0xFFF800
+    code = 0xCF8000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_d_7(code))
+
+
+#######################################
+# FF1R                             {{{2
+
+
+class I_ff1R(Instruction):
+    """FF1R [Ws], Wnd"""
+    name = 'ff1r'
+    mask = 0xFFF800
+    code = 0xCF0000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_d_7(code))
+
+
+#######################################
 # GOTO                             {{{2
 
 
@@ -1546,6 +1761,8 @@ class PIC24Processor(ida.processor_t):
 
         if ctx.insn.auxpref & AUX_SZ_BYTE:
             postfix = '.b'
+        elif ctx.insn.auxpref & AUX_SZ_DWORD:
+            postfix = '.d'
 
         ctx.out_mnem(8, postfix)
         return 1
