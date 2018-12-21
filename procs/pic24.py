@@ -525,6 +525,24 @@ class Instruction_w_l5_w(Instruction):
         set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
 
 
+class Instruction_w_l4_w(Instruction):
+    feat = ida.CF_USE1 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_imm(insn, 1, mask_k4_0(code))
+        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
+
+
+class Instruction_w_w_w(Instruction):
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_s_0(code))
+        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
+
+
 class Instruction_w_wp_wp_B(Instruction):
     feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
 
@@ -1608,30 +1626,18 @@ class I_lsr_wp_wp(Instruction_wp_wp_B):
     code = 0xD10000
 
 
-class I_lsr_w_l4_w(Instruction):
+class I_lsr_w_l4_w(Instruction_w_l4_w):
     """LSR Wb, #lit4, Wnd"""
     name = 'lsr'
     mask = 0xFF8070
     code = 0xDE0040
-    feat = ida.CF_USE1 | ida.CF_CHG3
-
-    def _decode(self, insn, code):
-        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
-        set_op_imm(insn, 1, mask_k4_0(code))
-        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
 
 
-class I_lsr_w_w_w(Instruction):
+class I_lsr_w_w_w(Instruction_w_w_w):
     """LSR Wb, Wns, Wnd"""
     name = 'lsr'
     mask = 0xFF8070
     code = 0xDE0000
-    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
-
-    def _decode(self, insn, code):
-        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
-        set_op_reg(insn, 1, ireg.W0 + mask_s_0(code))
-        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
 
 
 #######################################
@@ -2169,6 +2175,87 @@ class I_rrnc_wp_wp(Instruction_wp_wp_B):
     name = 'rrnc'
     mask = 0xFF8000
     code = 0xD30000
+
+
+#######################################
+# SE                               {{{2
+
+
+class I_se(Instruction):
+    """SE [Ws], Wnd"""
+    name = 'se'
+    mask = 0xFFF800
+    code = 0xFB0000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
+        insn.ops[0].dtype = ida.dt_byte
+        set_op_reg(insn, 1, ireg.W0 + mask_d_7(code))
+
+
+#######################################
+# SETM                             {{{2
+
+
+class I_setm_f_wr(Instruction_f_wr_B):
+    """SETM{.B} f, WREG"""
+    name = 'setm'
+    mask = 0xFFA000
+    code = 0xDF8000
+
+
+class I_setm_f(Instruction_f_B):
+    """SETM{.B} f"""
+    name = 'setm'
+    mask = 0xFFA000
+    code = 0xDFA000
+
+
+class I_setm_wp(Instruction_wp_B):
+    """SETM{.B} [Wd]"""
+    name = 'setm'
+    mask = 0xFF807F
+    code = 0xED8000
+
+
+#######################################
+# SL                               {{{2
+
+
+class I_sl_f_wr(Instruction_f_wr_B):
+    """SL{.B} f, WREG"""
+    name = 'sl'
+    mask = 0xFFA000
+    code = 0xD80000
+
+
+class I_sl_f(Instruction_f_B):
+    """SL{.B} f"""
+    name = 'sl'
+    mask = 0xFFA000
+    code = 0xD82000
+
+
+class I_sl_wp_wp(Instruction_wp_wp_B):
+    """SL{.B} [Ws], [Wd]"""
+    name = 'sl'
+    mask = 0xFF8000
+    code = 0xD00000
+
+
+class I_sl_w_l4_w(Instruction_w_l4_w):
+    """SL Wb, #lit4, Wnd"""
+    name = 'sl'
+    mask = 0xFF8070
+    code = 0xDD0040
+
+
+class I_sl_w_w_w(Instruction_w_w_w):
+    """SL Wb, Wns, Wnd"""
+    name = 'sl'
+    mask = 0xFF8070
+    code = 0xDD0000
 
 
 #######################################
