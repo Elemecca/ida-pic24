@@ -488,6 +488,15 @@ class Instruction_w_wp_B(Instruction):
             set_insn_byte(insn)
 
 
+class Instruction_w_wp_w(Instruction):
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_phrase(insn, 1, mask_s_0(code), mask_p_4(code), 0)
+        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
+
+
 class Instruction_w_l5_wp_B(Instruction):
     feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
 
@@ -497,6 +506,15 @@ class Instruction_w_l5_wp_B(Instruction):
         set_op_phrase(insn, 2, mask_d_7(code), mask_q_11(code), 0)
         if mask_B_14(code):
             set_insn_byte(insn)
+
+
+class Instruction_w_l5_w(Instruction):
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_imm(insn, 1, mask_k5_0(code))
+        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
 
 
 class Instruction_w_wp_wp_B(Instruction):
@@ -1721,6 +1739,60 @@ class I_mov_wp_wp(Instruction_wp_wp_B):
     name = 'mov'
     mask = 0xF80000
     code = 0x780000
+
+
+#######################################
+# MUL                              {{{2
+
+
+class I_mul_f(Instruction_f_B):
+    """MUL{.B} f"""
+    name = 'mul'
+    mask = 0xFFB000
+    code = 0xBC0000
+    feat = ida.CF_USE1
+
+
+class I_mulss_w_wp_w(Instruction_w_wp_w):
+    """MUL.SS Wb, [Ws], Wnd"""
+    name = 'mul.ss'
+    mask = 0xFF8000
+    code = 0xB98000
+
+
+class I_mulsu_w_l5_w(Instruction_w_l5_w):
+    """MUL.SU Wb, #lit5, Wnd"""
+    name = 'mul.su'
+    mask = 0xFF8060
+    code = 0xB90060
+
+
+class I_mulsu_w_wp_w(Instruction_w_wp_w):
+    """MUL.SU Wb, [Ws], Wnd"""
+    name = 'mul.su'
+    mask = 0xFF8000
+    code = 0xB90000
+
+
+class I_mulus_w_wp_w(Instruction_w_wp_w):
+    """MUL.US Wb, [Ws], Wnd"""
+    name = 'mul.us'
+    mask = 0xFF8000
+    code = 0xB88000
+
+
+class I_muluu_w_l5_w(Instruction_w_l5_w):
+    """MUL.UU Wb, #lit5, Wnd"""
+    name = 'mul.uu'
+    mask = 0xFF8060
+    code = 0xB80060
+
+
+class I_muluu_w_wp_w(Instruction_w_wp_w):
+    """MUL.UU Wb, [Ws], Wnd"""
+    name = 'mul.uu'
+    mask = 0xFF8000
+    code = 0xB80000
 
 
 #######################################
