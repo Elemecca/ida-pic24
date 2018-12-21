@@ -248,6 +248,10 @@ def mask_k10_4(code):
     return (code & 0x003FF0) >> 4
 
 
+def mask_k14_0(code):
+    return code & 0x003FFF
+
+
 def mask_k16_4(code):
     return (code & 0x0FFFF0) >> 4
 
@@ -1306,6 +1310,7 @@ class I_dec_wp_wp(Instruction_wp_wp_B):
     code = 0xE90000
 
 
+#######################################
 # DEC2                             {{{2
 
 
@@ -1450,6 +1455,154 @@ class I_gotol_w(Instruction):
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
+
+
+#######################################
+# INC                              {{{2
+
+
+class I_inc_f_wr(Instruction_f_wr_B):
+    """INC{.B} f, WREG"""
+    name = 'inc'
+    mask = 0xFF8000
+    code = 0xEC0000
+
+
+class I_inc_wp_wp(Instruction_wp_wp_B):
+    """INC{.B} [Ws], [Wd]"""
+    name = 'inc'
+    mask = 0xFF8000
+    code = 0xE80000
+
+
+#######################################
+# INC2                             {{{2
+
+
+class I_inc2_f_wr(Instruction_f_wr_B):
+    """INC2{.B} f, WREG"""
+    name = 'inc2'
+    mask = 0xFF8000
+    code = 0xEC8000
+
+
+class I_inc2_wp_wp(Instruction_wp_wp_B):
+    """INC2{.B} [Ws], [Wd]"""
+    name = 'inc2'
+    mask = 0xFF8000
+    code = 0xE88000
+
+
+#######################################
+# IOR                              {{{2
+
+
+class I_ior_f_wr(Instruction_f_wr_B):
+    """IOR{.B} f, WREG"""
+    name = 'ior'
+    mask = 0xFFA000
+    code = 0xB70000
+
+
+class I_ior_f(Instruction_f_B):
+    """IOR{.B} f"""
+    name = 'ior'
+    mask = 0xFFA000
+    code = 0xB72000
+
+
+class I_ior_l10_w(Instruction_l10_w_B):
+    """IOR{.B} #lit10, Wn"""
+    name = 'ior'
+    mask = 0xFF8000
+    code = 0xB30000
+
+
+class I_ior_w_l5_wp(Instruction_w_l5_wp_B):
+    """IOR{.B} Wb, #lit5, [Wd]"""
+    name = 'ior'
+    mask = 0xF80060
+    code = 0x700060
+
+
+class I_ior_w_wp_wp(Instruction_w_wp_wp_B):
+    """IOR{.B} Wb, [Ws], [Wd]"""
+    name = 'ior'
+    mask = 0xF80000
+    code = 0x700000
+
+
+#######################################
+# LNK                              {{{2
+
+
+class I_lnk(Instruction):
+    """LNK #lit14"""
+    name = 'lnk'
+    mask = 0xFFC001
+    code = 0xFA0000
+    feat = ida.CF_USE1
+
+    def _decode(self, insn, code):
+        set_op_imm(insn, 0, mask_k14_0(code))
+
+
+#######################################
+# LSR                              {{{2
+
+
+class I_lsr_f_wr(Instruction_f_wr_B):
+    """LSR{.B} f, WREG"""
+    name = 'lsr'
+    mask = 0xFFA000
+    code = 0xD50000
+
+
+class I_lsr_f(Instruction_f_B):
+    """LSR{.B} f"""
+    name = 'lsr'
+    mask = 0xFFA000
+    code = 0xD52000
+
+
+class I_lsr_wp_wp(Instruction):
+    """LSR{.B} [Ws], [Wd]"""
+    name = 'lsr'
+    mask = 0xFF8000
+    code = 0xD10000
+    feat = ida.CF_USE1 | ida.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
+        set_op_phrase(insn, 1, mask_d_7(code), mask_q_11(code), 0)
+        if mask_B_14(code):
+            set_insn_byte(insn)
+
+
+class I_lsr_w_l4_w(Instruction):
+    """LSR Wb, #lit4, Wnd"""
+    name = 'lsr'
+    mask = 0xFF8070
+    code = 0xDE0040
+    feat = ida.CF_USE1 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_imm(insn, 1, mask_k4_0(code))
+        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
+
+
+class I_lsr_w_w_w(Instruction):
+    """LSR Wb, Wns, Wnd"""
+    name = 'lsr'
+    mask = 0xFF8070
+    code = 0xDE0000
+    feat = ida.CF_USE1 | ida.CF_USE2 | ida.CF_CHG3
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.W0 + mask_w_11(code))
+        set_op_reg(insn, 1, ireg.W0 + mask_s_0(code))
+        set_op_reg(insn, 2, ireg.W0 + mask_d_7(code))
 
 
 #######################################
