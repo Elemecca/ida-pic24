@@ -2259,6 +2259,147 @@ class I_sl_w_w_w(Instruction_w_w_w):
 
 
 #######################################
+# SUB                              {{{2
+
+
+class I_sub_f_wr(Instruction_f_wr_B):
+    """SUB{.B} f, WREG"""
+    name = 'sub'
+    mask = 0xFFA000
+    code = 0xB50000
+
+
+class I_sub_f(Instruction_f_B):
+    """SUB{.B} f"""
+    name = 'sub'
+    mask = 0xFFA000
+    code = 0xB52000
+
+
+class I_sub_l10_w(Instruction_l10_w_B):
+    """SUB{.B} #lit10, Wn"""
+    name = 'sub'
+    mask = 0xFF8000
+    code = 0xB10000
+
+
+class I_sub_w_l5_wp(Instruction_w_l5_wp_B):
+    """SUB{.B} Wb, #lit5, [Wd]"""
+    name = 'sub'
+    mask = 0xF80060
+    code = 0x500060
+
+
+class I_sub_w_wp_wp(Instruction_w_wp_wp_B):
+    """SUB{.B} Wb [Ws], [Wd]"""
+    name = 'sub'
+    mask = 0xF80000
+    code = 0x500000
+
+
+class I_sub_a(Instruction):
+    """SUB Acc"""
+    name = 'sub'
+    mask = 0xFF7FFF
+    code = 0xCB3000
+    feat = ida.CF_CHG1
+
+    def _decode(self, insn, code):
+        set_op_reg(insn, 0, ireg.A if mask_A_15(code) else ireg.B)
+
+
+class I_subb_f_wr(Instruction_f_wr_B):
+    """SUBB{.B} f, WREG"""
+    name = 'subb'
+    mask = 0xFFA000
+    code = 0xB58000
+
+
+class I_subb_f(Instruction_f_B):
+    """SUBB{.B} f"""
+    name = 'SUBB'
+    mask = 0xFFA000
+    code = 0xB5A000
+
+
+class I_subb_l10_w(Instruction_l10_w_B):
+    """SUBB{.B} #lit10, Wn"""
+    name = 'subb'
+    mask = 0xFF8000
+    code = 0xB18000
+
+
+class I_subb_w_l5_wp(Instruction_w_l5_wp_B):
+    """SUBB{.B} Wb, #lit5, [Wd]"""
+    name = 'subb'
+    mask = 0xF80060
+    code = 0x580060
+
+
+class I_subb_w_wp_wp(Instruction_w_wp_wp_B):
+    """SUBB{.B} Wb, [Ws], [Wd]"""
+    name = 'subb'
+    mask = 0xF80000
+    code = 0x580000
+
+
+class I_subbr_f_wr(Instruction_f_wr_B):
+    """SUBBR{.B} f, WREG"""
+    name = 'subbr'
+    mask = 0xFFA000
+    code = 0xBD8000
+
+
+class I_subbr_f(Instruction_f_B):
+    """SUBBR{.B} f"""
+    name = 'SUBBR'
+    mask = 0xFFA000
+    code = 0xBDA000
+
+
+class I_subbr_w_l5_wp(Instruction_w_l5_wp_B):
+    """SUBBR{.B} Wb, #lit5, [Wd]"""
+    name = 'subbr'
+    mask = 0xF80060
+    code = 0x180060
+
+
+class I_subbr_w_wp_wp(Instruction_w_wp_wp_B):
+    """SUBBR{.B} Wb, [Ws], [Wd]"""
+    name = 'subbr'
+    mask = 0xF80000
+    code = 0x180000
+
+
+class I_subr_f_wr(Instruction_f_wr_B):
+    """SUBR{.B} f, WREG"""
+    name = 'subr'
+    mask = 0xFFA000
+    code = 0xBD0000
+
+
+class I_subr_f(Instruction_f_B):
+    """SUBR{.B} f"""
+    name = 'SUBR'
+    mask = 0xFFA000
+    code = 0xBD2000
+
+
+class I_subr_w_l5_wp(Instruction_w_l5_wp_B):
+    """SUBR{.B} Wb, #lit5, [Wd]"""
+    name = 'subr'
+    mask = 0xF80060
+    code = 0x100060
+
+
+class I_subr_w_wp_wp(Instruction_w_wp_wp_B):
+    """SUBR{.B} Wb, [Ws], [Wd]"""
+    name = 'subr'
+    mask = 0xF80000
+    code = 0x100000
+
+
+#######################################
 # Decode Map                       {{{2
 
 
