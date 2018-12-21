@@ -385,7 +385,7 @@ def set_op_near_rel(insn, op, offset):
 
 def set_insn_byte(insn):
     for op in insn.ops:
-        if op.type == idaapi.o_null:
+        if op.type == idaapi.o_void:
             break
         if op.dtyp == idaapi.dt_word:
             op.dtyp = idaapi.dt_byte
@@ -1458,7 +1458,7 @@ class I_ff1R(Instruction):
     feat = idaapi.CF_USE1 | idaapi.CF_CHG2
 
     def _decode(self, insn, code):
-        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code))
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
         set_op_reg(insn, 1, ireg.W0 + mask_d_7(code))
 
 
@@ -1895,7 +1895,7 @@ class I_popd_w(Instruction):
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_d_7(code))
-        insn.op[0].dtype = idaapi.dt_dword
+        insn.ops[0].dtype = idaapi.dt_dword
 
 
 class I_pops(Instruction):
@@ -1945,7 +1945,7 @@ class I_pushd_w(Instruction):
 
     def _decode(self, insn, code):
         set_op_reg(insn, 0, ireg.W0 + mask_s_0(code))
-        insn.op[0].dtype = idaapi.dt_dword
+        insn.ops[0].dtype = idaapi.dt_dword
 
 
 class I_pushs(Instruction):
