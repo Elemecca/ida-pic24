@@ -1,11 +1,17 @@
 # Microchip PIC24 support for IDA 7
 
 This is an IDA Pro 7 processor module that supports
-Microchip's 16-bit MCU line:
+Microchip's 16-bit MCU line. These devices have complete support:
 
-* PIC24F / dsPIC30F / dsPIC33F
-* PIC24E / dsPIC33E
+* PIC24F
 * PIC24H
+
+These devices are missing some instructions:
+
+* PIC24E
+* dsPIC30F
+* dsPIC33F
+* dsPIC33E
 
 
 ## Installation
