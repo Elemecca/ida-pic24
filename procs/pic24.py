@@ -307,6 +307,16 @@ class Config(object):
             return self._ports_by_addr[addr].name
         return None
 
+    def find_bit_name(self, addr, bit):
+        if addr not in self._ports_by_addr:
+            return None
+
+        port = self._ports_by_addr[addr]
+        if bit not in port.bits_by_addr:
+            return None
+
+        return port.bits_by_addr[bit]
+
 
 ###############################################################################
 # Flags & Decoding Helpers                                                 {{{1
@@ -551,6 +561,7 @@ def set_insn_byte(insn):
 
 class Instruction(object):
     feat = 0
+    is_bit = False
 
     def __index__(self):
         return self.index
@@ -1007,6 +1018,7 @@ class I_bclr_f_b(Instruction_f_b_B):
     name = 'bclr'
     mask = 0xFF0000
     code = 0xA90000
+    is_bit = True
 
 
 class I_bclr_wp_b(Instruction_wp_b_B):
@@ -1014,6 +1026,7 @@ class I_bclr_wp_b(Instruction_wp_b_B):
     name = 'bclr'
     mask = 0xFF0B80
     code = 0xA10000
+    is_bit = True
 
 
 #######################################
@@ -1086,6 +1099,7 @@ class I_bset_f_b(Instruction_f_b_B):
     name = 'bset'
     mask = 0xFF0000
     code = 0xA80000
+    is_bit = True
 
 
 class I_bset_wp_b(Instruction_wp_b_B):
@@ -1093,6 +1107,7 @@ class I_bset_wp_b(Instruction_wp_b_B):
     name = 'bset'
     mask = 0xFF0B80
     code = 0xA00000
+    is_bit = True
 
 
 #######################################
@@ -1122,6 +1137,7 @@ class I_btg_f_b(Instruction_f_b_B):
     name = 'btg'
     mask = 0xFF0000
     code = 0xAA0000
+    is_bit = True
 
 
 class I_btg_wp_b(Instruction_wp_b_B):
@@ -1129,6 +1145,7 @@ class I_btg_wp_b(Instruction_wp_b_B):
     name = 'btg'
     mask = 0xFF0B80
     code = 0xA20000
+    is_bit = True
 
 
 #######################################
@@ -1140,6 +1157,7 @@ class I_btsc_f_b(Instruction_f_b_B):
     name = 'btsc'
     mask = 0xFF0000
     code = 0xAF0000
+    is_bit = True
 
 
 class I_btsc_wp_b(Instruction_wp_b):
@@ -1147,6 +1165,7 @@ class I_btsc_wp_b(Instruction_wp_b):
     name = 'btsc'
     mask = 0xFF0F80
     code = 0xA70000
+    is_bit = True
 
 
 #######################################
@@ -1158,6 +1177,7 @@ class I_btss_f_b(Instruction_f_b_B):
     name = 'btss'
     mask = 0xFF0000
     code = 0xAE0000
+    is_bit = True
 
 
 class I_btss_wp_b(Instruction_wp_b):
@@ -1165,6 +1185,7 @@ class I_btss_wp_b(Instruction_wp_b):
     name = 'btss'
     mask = 0xFF0F80
     code = 0xA60000
+    is_bit = True
 
 
 #######################################
@@ -1177,6 +1198,7 @@ class I_btst_f_b(Instruction_f_b_B):
     mask = 0xFF0000
     code = 0xAB0000
     feat = idaapi.CF_USE1
+    is_bit = True
 
 
 class I_btstc_wp_b(Instruction_wp_b):
@@ -1185,6 +1207,7 @@ class I_btstc_wp_b(Instruction_wp_b):
     mask = 0xFF0780
     code = 0xA30000
     feat = idaapi.CF_USE1
+    is_bit = True
 
 
 class I_btstz_wp_b(Instruction_wp_b):
@@ -1193,6 +1216,7 @@ class I_btstz_wp_b(Instruction_wp_b):
     mask = 0xFF0780
     code = 0xA30800
     feat = idaapi.CF_USE1
+    is_bit = True
 
 
 class I_btstc_wp_w(Instruction_wp_w):
@@ -1220,6 +1244,7 @@ class I_btsts_f_b(Instruction_f_b_B):
     name = 'btsts'
     mask = 0xFF0000
     code = 0xAC0000
+    is_bit = True
 
 
 class I_btstsc_wp_b(Instruction_wp_b):
@@ -1227,6 +1252,7 @@ class I_btstsc_wp_b(Instruction_wp_b):
     name = 'btsts.c'
     mask = 0xFF0F80
     code = 0xA40000
+    is_bit = True
 
 
 class I_btstsz_wp_b(Instruction_wp_b):
@@ -1234,6 +1260,7 @@ class I_btstsz_wp_b(Instruction_wp_b):
     name = 'btsts.z'
     mask = 0xFF0F80
     code = 0xA40800
+    is_bit = True
 
 
 #######################################
@@ -2825,6 +2852,12 @@ class PIC24Processor(idaapi.processor_t):
             ctx.out_register(self.reg_names[op.reg])
 
         elif op.type == idaapi.o_imm:
+            if instructions[ctx.insn.itype].is_bit:
+                name = self.config.find_bit_name(ctx.insn.Op1.addr, op.value)
+                if name is not None:
+                    ctx.out_line(name, idaapi.COLOR_IMPNAME)
+                    return True
+
             ctx.out_symbol('#')
             ctx.out_value(op, idaapi.OOFW_IMM)
 
