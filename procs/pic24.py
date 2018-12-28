@@ -18,6 +18,8 @@
 # If not, see <https://www.gnu.org/licenses/>.
 
 
+import re
+
 import idaapi
 
 
@@ -159,6 +161,108 @@ conditions = [
 
 
 icond = Enum(conditions)
+
+
+###############################################################################
+# SFR Configuration                                                        {{{1
+###############################################################################
+
+
+ports_by_name = {}
+ports_by_addr = {}
+devices = {}
+
+
+def read_config(cfgpath):
+    re_ignore = re.compile(r'^\s+|^\s*;')
+    re_default = re.compile(r'^ \.default \s+ (\S+)', re.I | re.X)
+    re_device = re.compile(r'^ \. (\S+)', re.X)
+    re_port = re.compile(
+        r'''^   ([^\s.]+)
+            \s+ (0x[0-9a-f]+|[0-9]+)
+        ''',
+        re.I | re.X,
+    )
+    re_bit = re.compile(
+        r'''^   ([^\s.]+)
+            \.  ([^\s.]+)
+            \s+ (0x[0-9a-f]+|[0-9]+)
+        ''',
+        re.I | re.X,
+    )
+    re_area = re.compile(
+        r'''^   area
+            \s+ (\S+)
+            \s+ (\S+)
+            \s+ (0x[0-9a-f]+|[0-9]+)
+            :   (0x[0-9a-f]+|[0-9]+)
+            \s+ (.*) $
+        ''',
+        re.I | re.X,
+    )
+
+    default = None
+    device = None
+
+    with open(cfgpath, 'r') as cfg:
+        for line in cfg:
+            if re_ignore.match(line):
+                continue
+
+            if not device:
+                match = re_default.match(line)
+                if match:
+                    default = match.group(1)
+                    continue
+
+            match = re_device.match(line)
+            if match:
+                device = {
+                    'name': match.group(1),
+                    'areas': {},
+                }
+                devices[device['name']] = device
+                continue
+
+            if not device:
+                match = re_port.match(line)
+                if match:
+                    port = {
+                        'name': match.group(1),
+                        'addr': int(match.group(2), 0),
+                        'bits_by_name': {},
+                        'bits_by_addr': {},
+                    }
+                    ports_by_name[port['name']] = port
+                    ports_by_addr[port['addr']] = port
+                    continue
+
+                match = re_bit.match(line)
+                if match:
+                    port_name, name, addr = match.groups()
+                    if port_name not in ports_by_name:
+                        raise Exception('found bit for undeclared port')
+
+                    addr = int(addr, 0)
+                    port = ports_by_name[port_name]
+                    port['bits_by_name'][name] = addr
+                    port['bits_by_addr'][addr] = name
+                    continue
+
+            if device:
+                match = re_area.match(line)
+                if match:
+                    name = match.group(2)
+                    device['areas'][name] = {
+                        'cls': match.group(1),
+                        'name': name,
+                        'start': int(match.group(3), 0),
+                        'end': int(match.group(4), 0),
+                        'desc': match.group(5),
+                    }
+                    continue
+
+            raise Exception('invalid config line')
 
 
 ###############################################################################
@@ -2612,6 +2716,9 @@ class PIC24Processor(idaapi.processor_t):
     instruc_start = 0
     instruc_end = len(instruc) + 1
 
+    def notify_newfile(self, fname):
+        read_config(idaapi.getsysfile('pic24.cfg', idaapi.CFG_SUBDIR))
+
     def notify_ana(self, insn):
         code = insn_get_next_word(insn)
         decode_map[(code >> 16) & 0xFF].decode(insn, code)
@@ -2669,7 +2776,18 @@ class PIC24Processor(idaapi.processor_t):
             ctx.out_symbol('#')
             ctx.out_value(op, idaapi.OOFW_IMM)
 
-        elif op.type in [idaapi.o_mem, idaapi.o_near]:
+        elif op.type == idaapi.o_mem:
+            if op.addr in ports_by_addr:
+                ctx.out_addr_tag(idaapi.map_data_ea(ctx.insn, op.addr, op.n))
+                ctx.out_line(ports_by_addr[op.addr]['name'], idaapi.COLOR_IMPNAME)
+
+            elif not ctx.out_name_expr(op, op.addr):
+                ctx.out_tagon(idaapi.COLOR_ERROR)
+                ctx.out_value(op, idaapi.OOF_ADDR)
+                ctx.out_tagoff(idaapi.COLOR_ERROR)
+                idaapi.remember_problem(idaapi.PR_NONAME, ctx.insn.ea)
+
+        elif op.type == idaapi.o_near:
             if not ctx.out_name_expr(op, op.addr):
                 ctx.out_tagon(idaapi.COLOR_ERROR)
                 ctx.out_value(op, idaapi.OOF_ADDR)
