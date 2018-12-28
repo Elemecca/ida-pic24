@@ -168,12 +168,25 @@ icond = Enum(conditions)
 ###############################################################################
 
 
+class ReMatcher(object):
+    def __init__(self, string):
+        self.string = string
+        self.match = None
+
+    def __call__(self, pattern):
+        self.match = pattern.match(self.string)
+        return self.match
+
+    def __getattr__(self, name):
+        return getattr(self.match, name)
+
+
 ports_by_name = {}
 ports_by_addr = {}
 devices = {}
 
 
-def read_config(cfgpath):
+def read_config(cfgpath, dev_name=None):
     re_ignore = re.compile(r'^\s+|^\s*;')
     re_default = re.compile(r'^ \.default \s+ (\S+)', re.I | re.X)
     re_device = re.compile(r'^ \. (\S+)', re.X)
@@ -201,68 +214,58 @@ def read_config(cfgpath):
         re.I | re.X,
     )
 
-    default = None
     device = None
 
     with open(cfgpath, 'r') as cfg:
         for line in cfg:
-            if re_ignore.match(line):
-                continue
+            match = ReMatcher(line)
 
-            if not device:
-                match = re_default.match(line)
-                if match:
-                    default = match.group(1)
-                    continue
+            if match(re_ignore):
+                pass
 
-            match = re_device.match(line)
-            if match:
+            elif not device and match(re_default):
+                if dev_name is None:
+                    dev_name = match.group(1)
+
+            elif match(re_device):
                 device = {
                     'name': match.group(1),
                     'areas': {},
                 }
                 devices[device['name']] = device
-                continue
 
-            if not device:
-                match = re_port.match(line)
-                if match:
-                    port = {
-                        'name': match.group(1),
-                        'addr': int(match.group(2), 0),
-                        'bits_by_name': {},
-                        'bits_by_addr': {},
-                    }
-                    ports_by_name[port['name']] = port
-                    ports_by_addr[port['addr']] = port
-                    continue
+            elif not device and match(re_port):
+                port = {
+                    'name': match.group(1),
+                    'addr': int(match.group(2), 0),
+                    'bits_by_name': {},
+                    'bits_by_addr': {},
+                }
+                ports_by_name[port['name']] = port
+                ports_by_addr[port['addr']] = port
 
-                match = re_bit.match(line)
-                if match:
-                    port_name, name, addr = match.groups()
-                    if port_name not in ports_by_name:
-                        raise Exception('found bit for undeclared port')
+            elif not device and match(re_bit):
+                port_name, name, addr = match.groups()
+                if port_name not in ports_by_name:
+                    raise Exception('found bit for undeclared port')
 
-                    addr = int(addr, 0)
-                    port = ports_by_name[port_name]
-                    port['bits_by_name'][name] = addr
-                    port['bits_by_addr'][addr] = name
-                    continue
+                addr = int(addr, 0)
+                port = ports_by_name[port_name]
+                port['bits_by_name'][name] = addr
+                port['bits_by_addr'][addr] = name
 
-            if device:
-                match = re_area.match(line)
-                if match:
-                    name = match.group(2)
-                    device['areas'][name] = {
-                        'cls': match.group(1),
-                        'name': name,
-                        'start': int(match.group(3), 0),
-                        'end': int(match.group(4), 0),
-                        'desc': match.group(5),
-                    }
-                    continue
+            elif device and match(re_area):
+                name = match.group(2)
+                device['areas'][name] = {
+                    'cls': match.group(1),
+                    'name': name,
+                    'start': int(match.group(3), 0),
+                    'end': int(match.group(4), 0),
+                    'desc': match.group(5),
+                }
 
-            raise Exception('invalid config line')
+            else:
+                raise Exception('invalid config line')
 
 
 ###############################################################################
@@ -2779,7 +2782,10 @@ class PIC24Processor(idaapi.processor_t):
         elif op.type == idaapi.o_mem:
             if op.addr in ports_by_addr:
                 ctx.out_addr_tag(idaapi.map_data_ea(ctx.insn, op.addr, op.n))
-                ctx.out_line(ports_by_addr[op.addr]['name'], idaapi.COLOR_IMPNAME)
+                ctx.out_line(
+                    ports_by_addr[op.addr]['name'],
+                    idaapi.COLOR_IMPNAME,
+                )
 
             elif not ctx.out_name_expr(op, op.addr):
                 ctx.out_tagon(idaapi.COLOR_ERROR)
