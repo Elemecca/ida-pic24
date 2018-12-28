@@ -18,6 +18,7 @@
 # If not, see <https://www.gnu.org/licenses/>.
 
 
+from collections import namedtuple
 import re
 
 import idaapi
@@ -181,29 +182,24 @@ class ReMatcher(object):
         return getattr(self.match, name)
 
 
-ports_by_name = {}
-ports_by_addr = {}
-devices = {}
-
-
-def read_config(cfgpath, dev_name=None):
-    re_ignore = re.compile(r'^\s+|^\s*;')
-    re_default = re.compile(r'^ \.default \s+ (\S+)', re.I | re.X)
-    re_device = re.compile(r'^ \. (\S+)', re.X)
-    re_port = re.compile(
+class Config(object):
+    RE_IGNORE = re.compile(r'^\s+|^\s*;')
+    RE_DEFAULT = re.compile(r'^ \.default \s+ (\S+)', re.I | re.X)
+    RE_DEVICE = re.compile(r'^ \. (\S+)', re.X)
+    RE_PORT = re.compile(
         r'''^   ([^\s.]+)
             \s+ (0x[0-9a-f]+|[0-9]+)
         ''',
         re.I | re.X,
     )
-    re_bit = re.compile(
+    RE_BIT = re.compile(
         r'''^   ([^\s.]+)
             \.  ([^\s.]+)
             \s+ (0x[0-9a-f]+|[0-9]+)
         ''',
         re.I | re.X,
     )
-    re_area = re.compile(
+    RE_AREA = re.compile(
         r'''^   area
             \s+ (\S+)
             \s+ (\S+)
@@ -214,58 +210,102 @@ def read_config(cfgpath, dev_name=None):
         re.I | re.X,
     )
 
-    device = None
+    Port = namedtuple('Port', [
+        'name',
+        'addr',
+        'bits_by_name',
+        'bits_by_addr',
+    ])
 
-    with open(cfgpath, 'r') as cfg:
-        for line in cfg:
+    Device = namedtuple('Device', [
+        'name',
+        'areas',
+    ])
+
+    Area = namedtuple('Area', [
+        'cls',
+        'name',
+        'start',
+        'end',
+        'desc',
+    ])
+
+    _ports_by_name = {}
+    _ports_by_addr = {}
+    _devices = {}
+    _default = None
+
+    def read(self, stream):
+        device = None
+        for line in stream:
             match = ReMatcher(line)
 
-            if match(re_ignore):
+            if match(self.RE_IGNORE):
                 pass
 
-            elif not device and match(re_default):
-                if dev_name is None:
-                    dev_name = match.group(1)
+            elif not device and match(self.RE_DEFAULT):
+                if self._default is not None:
+                    raise Exception('duplicate .default')
 
-            elif match(re_device):
-                device = {
-                    'name': match.group(1),
-                    'areas': {},
-                }
-                devices[device['name']] = device
+                self._default = match.group(1)
 
-            elif not device and match(re_port):
-                port = {
-                    'name': match.group(1),
-                    'addr': int(match.group(2), 0),
-                    'bits_by_name': {},
-                    'bits_by_addr': {},
-                }
-                ports_by_name[port['name']] = port
-                ports_by_addr[port['addr']] = port
+            elif match(self.RE_DEVICE):
+                device = self.Device(
+                    name=match.group(1),
+                    areas={},
+                )
+                self._devices[device.name] = device
 
-            elif not device and match(re_bit):
+            elif not device and match(self.RE_PORT):
+                port = self.Port(
+                    name=match.group(1),
+                    addr=int(match.group(2), 0),
+                    bits_by_name={},
+                    bits_by_addr={},
+                )
+                self._ports_by_name[port.name] = port
+                self._ports_by_addr[port.addr] = port
+
+            elif not device and match(self.RE_BIT):
                 port_name, name, addr = match.groups()
-                if port_name not in ports_by_name:
+                if port_name not in self._ports_by_name:
                     raise Exception('found bit for undeclared port')
 
                 addr = int(addr, 0)
-                port = ports_by_name[port_name]
-                port['bits_by_name'][name] = addr
-                port['bits_by_addr'][addr] = name
+                port = self._ports_by_name[port_name]
+                port.bits_by_name[name] = addr
+                port.bits_by_addr[addr] = name
 
-            elif device and match(re_area):
+            elif device and match(self.RE_AREA):
                 name = match.group(2)
-                device['areas'][name] = {
-                    'cls': match.group(1),
-                    'name': name,
-                    'start': int(match.group(3), 0),
-                    'end': int(match.group(4), 0),
-                    'desc': match.group(5),
-                }
+                device.areas[name] = self.Area(
+                    cls=match.group(1),
+                    name=name,
+                    start=int(match.group(3), 0),
+                    end=int(match.group(4), 0),
+                    desc=match.group(5),
+                )
 
             else:
                 raise Exception('invalid config line')
+
+        if self._default is None:
+            raise Exception('.default is required')
+        elif self._default not in self._devices:
+            raise Exception('unsupported value for .default')
+
+    def select_device(self, device=None):
+        if device is None:
+            self._device = self._devices[self._default]
+        elif device in self.devices:
+            self._device = self._devices[device]
+        else:
+            raise Exception('unsupported device name')
+
+    def find_port_name(self, addr):
+        if addr in self._ports_by_addr:
+            return self._ports_by_addr[addr].name
+        return None
 
 
 ###############################################################################
@@ -2719,8 +2759,17 @@ class PIC24Processor(idaapi.processor_t):
     instruc_start = 0
     instruc_end = len(instruc) + 1
 
+    def notify_init(self, mod_name):
+        cfg_file = idaapi.getsysfile('pic24.cfg', idaapi.CFG_SUBDIR)
+        if cfg_file is None:
+            raise Exception("Config file 'pic24.cfg' not found.")
+
+        self.config = Config()
+        with open(cfg_file, 'r') as cfg:
+            self.config.read(cfg)
+
     def notify_newfile(self, fname):
-        read_config(idaapi.getsysfile('pic24.cfg', idaapi.CFG_SUBDIR))
+        self.config.select_device()
 
     def notify_ana(self, insn):
         code = insn_get_next_word(insn)
@@ -2780,12 +2829,10 @@ class PIC24Processor(idaapi.processor_t):
             ctx.out_value(op, idaapi.OOFW_IMM)
 
         elif op.type == idaapi.o_mem:
-            if op.addr in ports_by_addr:
+            port_name = self.config.find_port_name(op.addr)
+            if port_name is not None:
                 ctx.out_addr_tag(idaapi.map_data_ea(ctx.insn, op.addr, op.n))
-                ctx.out_line(
-                    ports_by_addr[op.addr]['name'],
-                    idaapi.COLOR_IMPNAME,
-                )
+                ctx.out_line(port_name, idaapi.COLOR_IMPNAME)
 
             elif not ctx.out_name_expr(op, op.addr):
                 ctx.out_tagon(idaapi.COLOR_ERROR)
