@@ -340,7 +340,7 @@ def mask_B_14(code):
 
 
 def mask_b_0(code):
-    return ((code & 0x00E000) >> 12) | (code & 0x000001)
+    return ((code & 0x00E000) >> 13) | ((code & 0x000001) << 3)
 
 
 def mask_b_12(code):
@@ -356,7 +356,7 @@ def mask_d_7(code):
 
 
 def mask_f12_1(code):
-    return (code & 0x001FFE) >> 1
+    return code & 0x001FFE
 
 
 def mask_f13_0(code):
@@ -737,7 +737,7 @@ class Instruction_f_b_B(Instruction):
     def _decode(self, insn, code):
         set_op_mem(insn, 0, mask_f12_1(code))
         set_op_imm(insn, 1, mask_b_0(code))
-        if insn.ops[1].value > 7:
+        if insn.ops[1].value < 8:
             set_insn_byte(insn)
 
 
