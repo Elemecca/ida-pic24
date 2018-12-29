@@ -2581,7 +2581,7 @@ class I_swap(Instruction):
     """SWAP{.B} Wn"""
     name = 'swap'
     mask = 0xFFF800
-    code = 0xFB0000
+    code = 0xFD0000
     feat = idaapi.CF_USE1 | idaapi.CF_CHG1
 
     def _decode(self, insn, code):
@@ -2598,14 +2598,14 @@ class I_tblrdh(Instruction_wp_wp_B):
     """TBLRDH{.B} [Ws], [Wd]"""
     name = 'tlbrdh'
     mask = 0xFF8000
-    code = 0xDA8000
+    code = 0xBA8000
 
 
 class I_tblrdl(Instruction_wp_wp_B):
     """TBLRDL{.B} [Ws], [Wd]"""
     name = 'tlbrdl'
     mask = 0xFF8000
-    code = 0xDA0000
+    code = 0xBA0000
 
 
 #######################################
@@ -2616,14 +2616,14 @@ class I_tblwth(Instruction_wp_wp_B):
     """TBLWTH{.B} [Ws], [Wd]"""
     name = 'tlbwth'
     mask = 0xFF8000
-    code = 0xDD8000
+    code = 0xBB8000
 
 
 class I_tblwtl(Instruction_wp_wp_B):
     """TBLWTL{.B} [Ws], [Wd]"""
     name = 'tlbwtl'
     mask = 0xFF8000
-    code = 0xDD0000
+    code = 0xBB0000
 
 
 #######################################
