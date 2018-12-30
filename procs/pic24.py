@@ -1935,6 +1935,20 @@ class I_mov_wp_wp(Instruction_wpo_wpo_B):
     code = 0x780000
 
 
+class I_movd_wp_w(Instruction):
+    """MOV.D [Ws], Wnd"""
+    name = 'mov.d'
+    mask = 0xFFF880
+    code = 0xBE0000
+    feat = idaapi.CF_USE1 | idaapi.CF_CHG2
+
+    def _decode(self, insn, code):
+        set_op_phrase(insn, 0, mask_s_0(code), mask_p_4(code), 0)
+        set_op_reg(insn, 0, ireg.W0 + mask_d_7(code))
+        insn.ops[0].dtype = idaapi.dt_dword
+        insn.ops[1].dtype = idaapi.dt_dword
+
+
 #######################################
 # MUL                              {{{2
 
