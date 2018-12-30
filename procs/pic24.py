@@ -252,7 +252,7 @@ class Config(object):
             elif match(self.RE_DEVICE):
                 device = self.Device(
                     name=match.group(1),
-                    areas={},
+                    areas=[],
                 )
                 self._devices[device.name] = device
 
@@ -278,13 +278,13 @@ class Config(object):
 
             elif device and match(self.RE_AREA):
                 name = match.group(2)
-                device.areas[name] = self.Area(
+                device.areas.append(self.Area(
                     cls=match.group(1),
                     name=name,
                     start=int(match.group(3), 0),
                     end=int(match.group(4), 0),
                     desc=match.group(5),
-                )
+                ))
 
             else:
                 raise Exception('invalid config line')
@@ -316,6 +316,10 @@ class Config(object):
             return None
 
         return port.bits_by_addr[bit]
+
+    @property
+    def areas(self):
+        return self._device.areas
 
 
 ###############################################################################
@@ -506,7 +510,7 @@ def set_op_wreg(insn, op):
 
 def set_op_mem(insn, op, addr):
     insn.ops[op].type = idaapi.o_mem
-    insn.ops[op].addr = idaapi.map_data_ea(insn, addr)
+    insn.ops[op].addr = addr
     insn.ops[op].dtyp = idaapi.dt_word
 
 
@@ -528,7 +532,6 @@ def set_op_phrase(insn, op, reg, mode, offset_reg):
 def set_op_near(insn, op, addr):
     insn.ops[op].type = idaapi.o_near
     insn.ops[op].addr = addr
-    idaapi.map_code_ea(insn, insn.ops[op])
 
 
 def set_op_cond(insn, op, cond):
@@ -2761,7 +2764,6 @@ class PIC24Processor(idaapi.processor_t):
         idaapi.PR_USE32   # use 32-bit (as opposed to 16-bit) addresses
         | idaapi.PRN_HEX  # show numbers in hex by default
         | idaapi.PR_NO_SEGMOVE  # we don't support move_segm()
-        | idaapi.PR_SEGTRANS
     )
 
     # number of bits in a byte
@@ -2786,6 +2788,11 @@ class PIC24Processor(idaapi.processor_t):
     instruc_start = 0
     instruc_end = len(instruc) + 1
 
+    # base address for segments in data memory
+    # this is the first location not addressable in 24 bits
+    # so it will never collide with a code memory location
+    DATA_EABASE = 0x1000000
+
     def notify_init(self, mod_name):
         cfg_file = idaapi.getsysfile('pic24.cfg', idaapi.CFG_SUBDIR)
         if cfg_file is None:
@@ -2795,8 +2802,45 @@ class PIC24Processor(idaapi.processor_t):
         with open(cfg_file, 'r') as cfg:
             self.config.read(cfg)
 
+    def _add_segment(self, name, cls, base, start, end):
+        s = idaapi.segment_t()
+        s.start_ea = base + start
+        s.end_ea = base + end
+        s.sel = idaapi.allocate_selector(base >> 4)
+
+        if cls == 'CODE':
+            s.type = idaapi.SEG_CODE
+            s.perm = idaapi.SEGPERM_EXEC
+            s.bitness = 1  # 32-bit addresses (really 24)
+        elif cls == 'SFR':
+            s.type = idaapi.SEG_IMEM
+            s.perm = idaapi.SEGPERM_READ | idaapi.SEGPERM_WRITE
+        elif cls == 'DATA':
+            s.type = idaapi.SEG_DATA
+            s.perm = idaapi.SEGPERM_READ | idaapi.SEGPERM_WRITE
+
+        idaapi.add_segm_ex(
+            s,
+            name,
+            cls,
+            idaapi.ADDSEG_NOSREG | idaapi.ADDSEG_NOTRUNC,
+        )
+
     def notify_newfile(self, fname):
         self.config.select_device()
+
+        for area in self.config.areas:
+            base = 0
+            if area.cls != 'CODE':
+                base = self.DATA_EABASE
+
+            self._add_segment(
+                area.name,
+                area.cls,
+                base,
+                area.start,
+                area.end,
+            )
 
     def notify_ana(self, insn):
         code = insn_get_next_word(insn)
@@ -2862,12 +2906,14 @@ class PIC24Processor(idaapi.processor_t):
             ctx.out_value(op, idaapi.OOFW_IMM)
 
         elif op.type == idaapi.o_mem:
+            addr = self.DATA_EABASE + op.addr
+
             port_name = self.config.find_port_name(op.addr)
             if port_name is not None:
-                ctx.out_addr_tag(idaapi.map_data_ea(ctx.insn, op.addr, op.n))
+                ctx.out_addr_tag(addr)
                 ctx.out_line(port_name, idaapi.COLOR_IMPNAME)
 
-            elif not ctx.out_name_expr(op, op.addr):
+            elif not ctx.out_name_expr(op, addr):
                 ctx.out_tagon(idaapi.COLOR_ERROR)
                 ctx.out_value(op, idaapi.OOF_ADDR)
                 ctx.out_tagoff(idaapi.COLOR_ERROR)
