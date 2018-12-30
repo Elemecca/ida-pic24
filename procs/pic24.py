@@ -2862,16 +2862,18 @@ class PIC24Processor(idaapi.processor_t):
         return insn.size if insn.itype != 0 else 0
 
     def _emu_operand(self, insn, op, is_write):
-        feat = insn.get_canon_feature()
-        dref_flag = idaapi.dr_W if is_write else idaapi.dr_R
-
         if op.type == idaapi.o_mem:
             # create data xrefs
-            insn.create_op_data(op.addr, op)
-            insn.add_dref(op.addr, op.offb, dref_flag)
+            addr = self.DATA_EABASE + op.addr
+            insn.create_op_data(addr, op)
+            insn.add_dref(
+                addr, op.offb,
+                (idaapi.dr_W if is_write else idaapi.dr_R),
+            )
 
         elif op.type == idaapi.o_near:
             # create code xrefs
+            feat = insn.get_canon_feature()
             insn.add_cref(
                 op.addr, op.offb,
                 (idaapi.fl_CN if (feat & idaapi.CF_CALL) else idaapi.fl_JN)
