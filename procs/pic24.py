@@ -20,6 +20,7 @@
 
 from collections import namedtuple
 import re
+import sys
 
 import idaapi
 
@@ -302,6 +303,11 @@ class Config(object):
         else:
             raise Exception('unsupported device name')
 
+    def find_port(self, addr):
+        if addr in self._ports_by_addr:
+            return self._ports_by_addr[addr]
+        return None
+
     def find_port_name(self, addr):
         if addr in self._ports_by_addr:
             return self._ports_by_addr[addr].name
@@ -320,6 +326,10 @@ class Config(object):
     @property
     def areas(self):
         return self._device.areas
+
+    @property
+    def ports(self):
+        return self._ports_by_addr.values()
 
 
 ###############################################################################
@@ -2856,6 +2866,12 @@ class PIC24Processor(idaapi.processor_t):
                 area.end,
             )
 
+        for port in self.config.ports:
+            addr = self.DATA_EABASE + port.addr
+            idaapi.create_word(addr, 2)
+            if not idaapi.set_name(addr, port.name, idaapi.SN_NOWARN):
+                idaapi.set_cmt(addr, port.name, 0)
+
     def notify_ana(self, insn):
         code = insn_get_next_word(insn)
         decode_map[(code >> 16) & 0xFF].decode(insn, code)
@@ -2996,6 +3012,45 @@ class PIC24Processor(idaapi.processor_t):
 
         ctx.set_gen_cmt()
         ctx.flush_outbuf()
+
+    def _out_equ(self, ctx, indent, name, value):
+        ctx.clr_gen_label()
+
+        ctx.out_spaces(indent)
+        ctx.out_line(name)
+
+        ctx.out_spaces(idaapi.get_inf_structure().indent)
+        ctx.out_line('.equ', idaapi.COLOR_KEYWORD)
+
+        ctx.out_char(' ')
+        ctx.out_tagon(idaapi.COLOR_NUMBER)
+        ctx.out_btoa(value)
+        ctx.out_tagoff(idaapi.COLOR_NUMBER)
+
+        # indent by negative int max
+        # this serves to remove the default indent, whatever it is
+        ctx.flush_outbuf(-sys.maxint - 1)
+
+    def _out_port(self, ctx):
+        s = idaapi.getseg(ctx.insn_ea)
+        if not s or s.type != idaapi.SEG_IMEM:
+            return False
+
+        addr = ctx.insn_ea - self.DATA_EABASE
+        port = self.config.find_port(addr)
+        if not port:
+            return False
+
+        self._out_equ(ctx, 0, port.name, port.addr)
+        for addr, bit in port.bits_by_addr.iteritems():
+            self._out_equ(ctx, 2, bit, addr)
+
+        ctx.gen_empty_line()
+        return True
+
+    def notify_out_data(self, ctx, analyze_only):
+        if not self._out_port(ctx):
+            ctx.out_data(analyze_only)
 
 
 def PROCESSOR_ENTRY():
