@@ -2420,7 +2420,7 @@ class I_setm_wp(Instruction_wp_B):
     """SETM{.B} [Wd]"""
     name = 'setm'
     mask = 0xFF807F
-    code = 0xED8000
+    code = 0xEB8000
 
 
 #######################################
