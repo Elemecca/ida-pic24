@@ -2610,8 +2610,8 @@ class I_subr_w_wp_wp(Instruction_w_wp_wp_B):
 class I_swap(Instruction):
     """SWAP{.B} Wn"""
     name = 'swap'
-    mask = 0xFFF800
-    code = 0xFD0000
+    mask = 0xFFBFF0
+    code = 0xFD8000
     feat = idaapi.CF_USE1 | idaapi.CF_CHG1
 
     def _decode(self, insn, code):
