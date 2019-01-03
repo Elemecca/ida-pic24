@@ -456,27 +456,28 @@ def mask_s_0(code):
 
 
 def mask_slit4_7(code):
-    return (
-        ((code & 0x000380) >> 7)
-        * (-1 if (code & 0x000400) else 1)
-    )
+    value = ((code & 0x000780) >> 7)
+    if value > 0x07:
+        value -= 0x10
+    return value
 
 
 def mask_slit10_4(code):
-    return (
-        (
-            ((code & 0x038000) >> 11)
-            + ((code & 0x003800) >> 8)
-            + ((code & 0x000070) >> 4)
-        ) * (-2 if code & 0x040000 else 2)
+    value = (
+        ((code & 0x078000) >> 9)
+        + ((code & 0x003800) >> 8)
+        + ((code & 0x000070) >> 4)
     )
+    if value > 0x01FF:
+        value -= 0x0400
+    return value
 
 
 def mask_slit16_0(code):
-    return (
-        (code & 0x007FFF)
-        * (-1 if (code & 0x008000) else 1)
-    )
+    value = code & 0x00FFFF
+    if value > 0x7FFF:
+        value -= 0x010000
+    return value
 
 
 def mask_v_7(code):
@@ -1920,7 +1921,8 @@ class I_mov_wso_w(Instruction):
         set_op_reg(insn, 1, ireg.W0 + mask_d_7(code))
         if mask_B_14(code):
             set_insn_byte(insn)
-            insn.ops[0].addr //= 2
+        else:
+            insn.ops[0].addr *= 2
 
 
 class I_mov_w_wso(Instruction):
@@ -1935,7 +1937,8 @@ class I_mov_w_wso(Instruction):
         set_op_displ(insn, 1, mask_d_7(code), mask_slit10_4(code))
         if mask_B_14(code):
             set_insn_byte(insn)
-            insn.Op2.addr //= 2
+        else:
+            insn.Op2.addr *= 2
 
 
 class I_mov_wp_wp(Instruction_wpo_wpo_B):
