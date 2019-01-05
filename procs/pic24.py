@@ -2406,14 +2406,14 @@ class I_setm_f_wr(Instruction_f_wr_B):
     """SETM{.B} f, WREG"""
     name = 'setm'
     mask = 0xFFA000
-    code = 0xDF8000
+    code = 0xEF8000
 
 
 class I_setm_f(Instruction_f_B):
     """SETM{.B} f"""
     name = 'setm'
     mask = 0xFFA000
-    code = 0xDFA000
+    code = 0xEFA000
 
 
 class I_setm_wp(Instruction_wp_B):
