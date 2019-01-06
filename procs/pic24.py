@@ -1105,6 +1105,17 @@ class I_bra_c_slit16_DSP(Instruction):
 
 
 #######################################
+# BREAK                            {{{2
+
+
+class I_break(Instruction):
+    """BREAK"""
+    name = 'break'
+    mask = 0xFFFFFF
+    code = 0xDA4000
+
+
+#######################################
 # BSET                             {{{2
 
 
