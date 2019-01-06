@@ -2271,6 +2271,7 @@ class I_reset(Instruction):
     name = 'reset'
     mask = 0xFFFFFF
     code = 0xFE0000
+    feat = idaapi.CF_STOP
 
 
 #######################################
@@ -2282,6 +2283,7 @@ class I_retfie(Instruction):
     name = 'retfie'
     mask = 0xFFFFFF
     code = 0x064000
+    feat = idaapi.CF_STOP
 
 
 #######################################
@@ -2293,6 +2295,7 @@ class I_retlw(Instruction_l10_w_B):
     name = 'retlw'
     mask = 0xFF8000
     code = 0x050000
+    feat = idaapi.CF_STOP
 
 
 #######################################
@@ -2304,6 +2307,7 @@ class I_return(Instruction):
     name = 'return'
     mask = 0xFFFFFF
     code = 0x060000
+    feat = idaapi.CF_STOP
 
 
 #######################################
